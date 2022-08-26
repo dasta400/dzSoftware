@@ -1,6 +1,8 @@
 bin/*
 exp/*
-lst/*
+SDCC/*
+!SDCC/src/
+!SDCC/compileSDCC.sh
 src/equates.inc
 src/portmappings.inc
 

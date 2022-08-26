@@ -33,11 +33,11 @@
 #include "exp/BIOS.exp"
 #include "exp/CLI.exp"
 
-        .ORG    $4570                   ; start of code at address $4570
-        jp      $4575                   ; first instruction must jump to the executable code
-        .BYTE   $70, $45                ; load address (values must be same as .org above)
+        .ORG    $4420                   ; start of code at address $4420
+        jp      $4425                   ; first instruction must jump to the executable code
+        .BYTE   $20, $44                ; load address (values must be same as .org above)
         
-        .ORG    $4575                   ; start of program (must be same as jp above)
+        .ORG    $4425                   ; start of program (must be same as jp above)
 ;==============================================================================
 ; Hello World program starts here
 ;==============================================================================

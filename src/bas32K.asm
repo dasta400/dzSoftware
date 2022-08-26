@@ -133,10 +133,10 @@ BN      .EQU    28H             ; BIN error
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
         ; .ORG    00150H
-        .ORG    $4570           ; This is the entry code
-        jp      $4575           ;   for programs 
-        .BYTE   $70, $45        ;   running
-        .ORG    $4575           ;   on DZOS
+        .ORG    $4420           ; This is the entry code
+        jp      $4425           ;   for programs 
+        .BYTE   $20, $44        ;   running
+        .ORG    $4425           ;   on DZOS
 
 COLD:   JP      STARTB          ; Jump for cold start
 WARM:   JP      WARMST          ; Jump for warm start
@@ -1259,7 +1259,10 @@ UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
         RET
 
 
-TSTBRK: RST     18H             ; Check input status
+TSTBRK: 
+        ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
+        ;RST     18H             ; Check input status
+        RST     $08             ; Check input status
         RET     Z               ; No key, go back
         RST     10H             ; Get the key into A
         CP      ESC             ; Escape key?
