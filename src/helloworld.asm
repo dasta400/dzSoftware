@@ -29,15 +29,8 @@
 ; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ; -----------------------------------------------------------------------------
 
-#include "src/equates.inc"
-#include "exp/BIOS.exp"
-#include "exp/CLI.exp"
+#include "src/_header.inc"
 
-        .ORG    $4420                   ; start of code at address $4420
-        jp      $4425                   ; first instruction must jump to the executable code
-        .BYTE   $20, $44                ; load address (values must be same as .org above)
-        
-        .ORG    $4425                   ; start of program (must be same as jp above)
 ;==============================================================================
 ; Hello World program starts here
 ;==============================================================================

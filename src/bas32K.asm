@@ -20,7 +20,10 @@
 ; the original ROM code (checksum A934H). PA
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;            I've just changed the WRKSPC address and the main .ORG address to fit dastaZ80
+;       List of changes:
+;               - WRKSPC equals to 8000H instead of 8045H
+;               - The main .ORG address is $4420 instead of 00150H
+;               - TSTBRK subroutine RST to Serial Channel A (08H) instead of Channel B (18H)
 
 ; GENERAL EQUATES
 
@@ -42,7 +45,7 @@ DEL     .EQU    7FH             ; Delete
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
 ;WRKSPC  .EQU    8045H             ; BASIC Work space
-WRKSPC  .EQU    $8000             ; BASIC Work space
+WRKSPC  .EQU    8000H             ; BASIC Work space
 USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
 OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
 OTPORT  .EQU    WRKSPC+7H           ; Port (p)
@@ -1262,7 +1265,7 @@ UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
 TSTBRK: 
         ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
         ;RST     18H             ; Check input status
-        RST     $08             ; Check input status
+        RST     08H             ; Check input status
         RET     Z               ; No key, go back
         RST     10H             ; Get the key into A
         CP      ESC             ; Escape key?
