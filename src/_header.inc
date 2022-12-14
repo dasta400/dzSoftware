@@ -31,9 +31,11 @@
 
 #include "src/equates.inc"
 #include "exp/BIOS.exp"
+#include "exp/kernel.exp"
 #include "exp/CLI.exp"
+#include "exp/sysvars.exp"
 
-        .ORG    $4420                   ; start of code at address $4420
+        .ORG    $4420                   ; start of code at start of free RAM
         jp      $4425                   ; first instruction must jump to the executable code
         .BYTE   $20, $44                ; load address (values must be same as .org above)
 

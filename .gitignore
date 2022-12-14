@@ -5,7 +5,6 @@ SDCC/*
 !SDCC/src/
 !SDCC/compileSDCC.sh
 src/equates.inc
-src/portmappings.inc
 
 # The Telemark Assembler (TASM)
 TASM.EXE

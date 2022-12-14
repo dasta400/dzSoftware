@@ -21,9 +21,13 @@
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
 ;       List of changes:
-;               - WRKSPC equals to 8000H instead of 8045H
+;               - WRKSPC changed
 ;               - The main .ORG address is $4420 instead of 00150H
-;               - TSTBRK subroutine RST to Serial Channel A (08H) instead of Channel B (18H)
+; Nov/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
+;               - MONITR jumps to CLI ($278d) instead of $0000
+; Dec/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
+;               - Added LOAD and SAVE
+;               - Added LE error for LOAD
 
 ; GENERAL EQUATES
 
@@ -44,8 +48,8 @@ DEL     .EQU    7FH             ; Delete
 ; BASIC WORK SPACE LOCATIONS
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;WRKSPC  .EQU    8045H             ; BASIC Work space
-WRKSPC  .EQU    8000H             ; BASIC Work space
+WRKSPC  .EQU    8045H             ; BASIC Work space
+; WRKSPC  .EQU    6200H               ; BASIC Work space
 USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
 OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
 OTPORT  .EQU    WRKSPC+7H           ; Port (p)
@@ -133,6 +137,7 @@ UF      .EQU    22H             ; UnDEFined FN function
 MO      .EQU    24H             ; Missing operand
 HX      .EQU    26H             ; HEX error
 BN      .EQU    28H             ; BIN error
+LE      .EQU    2AH             ; LOAD File not found - Dec/2022 - Added by David Asta
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
         ; .ORG    00150H
@@ -236,7 +241,8 @@ BFREE:  .BYTE   " Bytes free",CR,LF,0,0
 
 SIGNON: .BYTE   "Z80 BASIC Ver 4.7b",CR,LF
         .BYTE   "Copyright ",40,"C",41
-        .BYTE   " 1978 by Microsoft",CR,LF,0,0
+        .BYTE   " 1978 by Microsoft",CR,LF
+        .BYTE   "Adapted to dastaZ80 by David Asta ",40,"C",41," 2022",CR,LF,0,0    ; Dec/2022 - Added by David Asta
 
 MEMMSG: .BYTE   "Memory top",0
 
@@ -307,8 +313,8 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'C'+80H,"ONT"
         .BYTE   'L'+80H,"IST"
         .BYTE   'C'+80H,"LEAR"
-        .BYTE   'C'+80H,"LOAD"
-        .BYTE   'C'+80H,"SAVE"
+        .BYTE   'L'+80H,"OAD"           ; Dec/2022 - Adapted by David Asta - was CLOAD
+        .BYTE   'S'+80H,"AVE"           ; Dec/2022 - Adapted by David Asta - was CSAVE
         .BYTE   'N'+80H,"EW"
 
         .BYTE   'T'+80H,"AB("
@@ -396,8 +402,8 @@ WORDTB: .WORD   PEND
         .WORD   CONT
         .WORD   LIST
         .WORD   CLEAR
-        .WORD   REM
-        .WORD   REM
+        .WORD   LOAD                    ; Dec/2022 - Adapted by David Asta
+        .WORD   SAVE                    ; Dec/2022 - Adapted by David Asta
         .WORD   NEW
 
 ; RESERVED WORD TOKEN VALUES
@@ -477,6 +483,7 @@ ERRORS: .BYTE   "NF"            ; NEXT without FOR
         .BYTE   "MO"            ; Missing operand
         .BYTE   "HX"            ; HEX error
         .BYTE   "BN"            ; BIN error
+        .BYTE   "LE"            ; LOAD File not found - Dec/2022 - Added by David Asta
 
 ; INITIALISATION TABLE -------------------------------------------------------
 
@@ -1263,9 +1270,7 @@ UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
 
 
 TSTBRK: 
-        ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-        ;RST     18H             ; Check input status
-        RST     08H             ; Check input status
+        RST     18H             ; Check input status
         RET     Z               ; No key, go back
         RST     10H             ; Get the key into A
         CP      ESC             ; Escape key?
@@ -4333,7 +4338,8 @@ MONOUT:
 
 
 MONITR: 
-        JP      $0000           ; Restart (Normally Monitor Start)
+        JP      $278d           ; Nov/2022 - Adapted by David Asta,
+                                ; jump to dzOS CLI
 
 
 INITST: LD      A,0             ; Clear break flag
@@ -4353,5 +4359,112 @@ TSTBIT: PUSH    AF              ; Save bit mask
 OUTNCR: CALL    OUTC            ; Output character in A
         JP      PRNTCRLF        ; Output CRLF
 
-.end
 
+LOAD:   ; Dec/2022 - Added by David Asta
+        dec     HL                      ; GETCHR will INCrease
+        call    GETCHR                  ; check if there is text after save command
+        jp      z, SNERR                ; if not, syntax error
+        call    EVAL
+        ld      A, (TYPE)               ; get variable type
+        or      A                       ; and check if it's a string
+        jp      z, SNERR                ; if not, syntax error
+
+        ; load string name (Todo - GETSTR instead?)
+        call    TSTSTR                  ; is it a string?
+        call    GSTRCU                  ; Get current string
+        call    LOADFP                  ; BC=string pointer, E=length
+        ld      D, 0                    ; remove D
+        ld      A, E                    ; if it's a
+        and     A                       ;   null string
+        jp      z, SNERR                ;   syntax error
+
+        ld      ($4176), BC             ; SYSVARS.tmp_addr1 = string address
+
+        ; add a string terminator ($00) at the end of the string
+        ; it will substitute the last " with a zero
+        ld      H, B
+        ld      L, C                    ; HL = string address
+        xor     A                       ; clear Carry flag
+        add     HL, DE                  ; address + length
+        ld      A, 0                    ;   and change it
+        ld      (HL), A                 ;   for a string terminator
+
+        ; Search filename in BAT
+        ; Check that filename exists
+        ; Parameters for F_KRN_DZFS_CHECK_FILE_EXISTS
+        ;   IN <= HL = Address where the filename to check is stored
+        ;   OUT => Zero Flag set if filename not found
+        ld      H, B
+        ld      L, C
+        call    $2731                   ; F_KRN_DZFS_CHECK_FILE_EXISTS
+        jp      z, load_notfound        ; filename not found error
+
+        ; Parameters for F_KRN_DZFS_LOAD_FILE_TO_RAM
+        ;   DE = 1st sector
+        ;   IX = length in sectors
+        ld      DE, ($40CA)             ; SYSVARS.DISK_cur_file_1st_sector
+        ld      IX, ($40C7)             ; SYSVARS.DISK_cur_file_size_sectors
+        call    $2710                   ; F_KRN_DZFS_LOAD_FILE_TO_RAM
+
+        call    PRNTOK
+        ret
+
+load_notfound:
+        ld      E, LE                   ; LOAD error
+        jp      ERROR
+
+SAVE:   ; Dec/2022 - Added by David Asta
+        dec     HL                      ; GETCHR will INCrease
+        call    GETCHR                  ; check if there is text after save command
+        jp      z, SNERR                ; if not, syntax error
+        call    EVAL
+        ld      A, (TYPE)               ; get variable type
+        or      A                       ; and check if it's a string
+        jp      z, SNERR                ; if not, syntax error
+
+        ; load string name (Todo - GETSTR instead?)
+        call    TSTSTR                  ; is it a string?
+        call    GSTRCU                  ; Get current string
+        call    LOADFP                  ; BC=string pointer, E=length
+        ld      D, 0                    ; remove D
+        ld      A, E                    ; if it's a
+        and     A                       ;   null string
+        jp      z, SNERR                ;   syntax error
+
+        ld      ($4176), BC             ; SYSVARS.tmp_addr1 = string address
+
+        ; add a string terminator ($00) at the end of the string
+        ; it will substitute the last " with a zero
+        ld      H, B
+        ld      L, C                    ; HL = string address
+        xor     A                       ; clear Carry flag
+        add     HL, DE                  ; address + length
+        ld      A, 0                    ;   and change it
+        ld      (HL), A                 ;   for a string terminator
+
+        ; Set File Type to BAS ($03) and Attributes to None ($00)
+        ld      A, $03                  ; File Type = BAS
+        ld      ($4175), A              ; SYSVARS.DISK_file_type
+        ld      A, $00
+        ld      ($40BC), A              ; SYSVARS.DISK_cur_file_attribs
+
+        ; Calculate the length of the BASIC program:
+        ;   length = value at PROGND - PROGST
+        ld      HL, (PROGND)
+        ld      BC, PROGST
+        xor     A
+        sbc     HL, BC                  ; HL = length of BASIC program
+
+        ; Parameters for F_KRN_DZFS_CREATE_NEW_FILE
+        ;   HL = address of first byte to be stored
+        ;   BC = number of bytes to be stored
+        ;   IX = address where the filename is stored
+        ld      B, H
+        ld      C, L                    ; BC = number of bytes to be stored
+        ld      HL, PROGST              ; HL = address first byte to be stored
+        ld      IX, ($4176)             ; IX = address where the filename is stored
+        call    $2728                   ; F_KRN_DZFS_CREATE_NEW_FILE
+        call    PRNTOK
+        ret
+
+.end
