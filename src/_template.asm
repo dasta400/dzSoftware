@@ -29,8 +29,10 @@
 ; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ; -----------------------------------------------------------------------------
 
+.NOLIST
 #include "src/_header.inc"              ; This include will add the other needed includes
                                         ; And set the start of code at address $4420
+.LIST
 
 ;==============================================================================
 ; YOUR PROGRAM GOES HERE

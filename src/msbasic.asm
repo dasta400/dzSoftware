@@ -29,27 +29,30 @@
 ;               - Added LOAD and SAVE
 ;               - Added LE error for LOAD
 
+.NOLIST                                                 ; Dec/2022 - Added by David Asta
+#include "src/_header.inc"                              ; Dec/2022 - Added by David Asta
+MSBASIC_BIN_LEN     .EQU    7469                        ; Dec/2022 - Added by David Asta
+.NOLIST                                                 ; Dec/2022 - Added by David Asta
+
 ; GENERAL EQUATES
 
 CTRLC   .EQU    03H             ; Control "C"
 CTRLG   .EQU    07H             ; Control "G"
 BKSP    .EQU    08H             ; Back space
-LF      .EQU    0AH             ; Line feed
+; LF      .EQU    0AH             ; Line feed           ; Dec/2022 - Adapted by David Asta
 CS      .EQU    0CH             ; Clear screen
-CR      .EQU    0DH             ; Carriage return
+; CR      .EQU    0DH             ; Carriage return     ; Dec/2022 - Adapted by David Asta
 CTRLO   .EQU    0FH             ; Control "O"
 CTRLQ	.EQU	11H		        ; Control "Q"
 CTRLR   .EQU    12H             ; Control "R"
 CTRLS   .EQU    13H             ; Control "S"
 CTRLU   .EQU    15H             ; Control "U"
-ESC     .EQU    1BH             ; Escape
+; ESC     .EQU    1BH             ; Escape              ; Dec/2022 - Adapted by David Asta
 DEL     .EQU    7FH             ; Delete
 
 ; BASIC WORK SPACE LOCATIONS
 
-; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-WRKSPC  .EQU    8045H             ; BASIC Work space
-; WRKSPC  .EQU    6200H               ; BASIC Work space
+WRKSPC  .EQU    FREERAM_START + MSBASIC_BIN_LEN ; BASIC Work space  ; Dec/2022 - Adapted by David Asta
 USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
 OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
 OTPORT  .EQU    WRKSPC+7H           ; Port (p)
@@ -139,12 +142,7 @@ HX      .EQU    26H             ; HEX error
 BN      .EQU    28H             ; BIN error
 LE      .EQU    2AH             ; LOAD File not found - Dec/2022 - Added by David Asta
 
-; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-        ; .ORG    00150H
-        .ORG    $4420           ; This is the entry code
-        jp      $4425           ;   for programs 
-        .BYTE   $20, $44        ;   running
-        .ORG    $4425           ;   on DZOS
+.LIST                                                   ; Dec/2022 - Added by David Asta
 
 COLD:   JP      STARTB          ; Jump for cold start
 WARM:   JP      WARMST          ; Jump for warm start
@@ -154,7 +152,6 @@ STARTB:
 
         .WORD   DEINT           ; Get integer -32768 to 32767
         .WORD   ABPASS          ; Return integer in AB
-
 
 CSTART: LD      HL,WRKSPC       ; Start of workspace RAM
         LD      SP,HL           ; Set up a temporary stack
@@ -4123,8 +4120,10 @@ GETINP: RST	    10H             ;input a character
         RET
 
 CLS: 
-        LD      A,CS            ; ASCII Clear screen
-        JP      MONOUT          ; Output character
+        call    F_KRN_SERIAL_CLRSCR
+        ret
+        ; LD      A,CS            ; ASCII Clear screen
+        ; JP      MONOUT          ; Output character
 
 WIDTH:  CALL    GETINT          ; Get integer 0-255
         LD      A,E             ; Width to A
@@ -4378,7 +4377,7 @@ LOAD:   ; Dec/2022 - Added by David Asta
         and     A                       ;   null string
         jp      z, SNERR                ;   syntax error
 
-        ld      ($4176), BC             ; SYSVARS.tmp_addr1 = string address
+        ; ld      (tmp_addr1), BC         ; SYSVARS.tmp_addr1 = string address
 
         ; add a string terminator ($00) at the end of the string
         ; it will substitute the last " with a zero
@@ -4395,16 +4394,19 @@ LOAD:   ; Dec/2022 - Added by David Asta
         ;   IN <= HL = Address where the filename to check is stored
         ;   OUT => Zero Flag set if filename not found
         ld      H, B
-        ld      L, C
-        call    $2731                   ; F_KRN_DZFS_CHECK_FILE_EXISTS
+        ld      L, C                    ; HL = string pointer from LOADFP
+        call    F_KRN_DZFS_CHECK_FILE_EXISTS
         jp      z, load_notfound        ; filename not found error
 
         ; Parameters for F_KRN_DZFS_LOAD_FILE_TO_RAM
         ;   DE = 1st sector
         ;   IX = length in sectors
-        ld      DE, ($40CA)             ; SYSVARS.DISK_cur_file_1st_sector
-        ld      IX, ($40C7)             ; SYSVARS.DISK_cur_file_size_sectors
-        call    $2710                   ; F_KRN_DZFS_LOAD_FILE_TO_RAM
+        ;   DISK_loadsave_addr = address where the file will be stored in memory
+        ld      DE, (DISK_cur_file_1st_sector)
+        ld      IX, (DISK_cur_file_size_sectors)
+        ld      HL, PROGST
+        ld      (DISK_loadsave_addr), HL
+        call    F_KRN_DZFS_LOAD_FILE_TO_RAM
 
         call    PRNTOK
         ret
@@ -4431,8 +4433,6 @@ SAVE:   ; Dec/2022 - Added by David Asta
         and     A                       ;   null string
         jp      z, SNERR                ;   syntax error
 
-        ld      ($4176), BC             ; SYSVARS.tmp_addr1 = string address
-
         ; add a string terminator ($00) at the end of the string
         ; it will substitute the last " with a zero
         ld      H, B
@@ -4444,26 +4444,28 @@ SAVE:   ; Dec/2022 - Added by David Asta
 
         ; Set File Type to BAS ($03) and Attributes to None ($00)
         ld      A, $03                  ; File Type = BAS
-        ld      ($4175), A              ; SYSVARS.DISK_file_type
+        ld      (DISK_file_type), A
         ld      A, $00
-        ld      ($40BC), A              ; SYSVARS.DISK_cur_file_attribs
+        ld      (DISK_cur_file_attribs), A
 
         ; Calculate the length of the BASIC program:
         ;   length = value at PROGND - PROGST
         ld      HL, (PROGND)
-        ld      BC, PROGST
+        ld      DE, PROGST
         xor     A
-        sbc     HL, BC                  ; HL = length of BASIC program
+        sbc     HL, DE                  ; HL = length of BASIC program
 
         ; Parameters for F_KRN_DZFS_CREATE_NEW_FILE
         ;   HL = address of first byte to be stored
         ;   BC = number of bytes to be stored
         ;   IX = address where the filename is stored
+        ld      (tmp_addr1), BC         ; tmp_addr1 = string address
+        ld      IX, (tmp_addr1)         ; IX = address where the filename is stored
         ld      B, H
         ld      C, L                    ; BC = number of bytes to be stored
         ld      HL, PROGST              ; HL = address first byte to be stored
-        ld      IX, ($4176)             ; IX = address where the filename is stored
-        call    $2728                   ; F_KRN_DZFS_CREATE_NEW_FILE
+        
+        call    F_KRN_DZFS_CREATE_NEW_FILE
         call    PRNTOK
         ret
 

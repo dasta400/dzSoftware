@@ -35,6 +35,8 @@
 #include "exp/CLI.exp"
 #include "exp/sysvars.exp"
 
+.LIST
+
         .ORG    $4420                   ; start of code at start of free RAM
         jp      $4425                   ; first instruction must jump to the executable code
         .BYTE   $20, $44                ; load address (values must be same as .org above)
