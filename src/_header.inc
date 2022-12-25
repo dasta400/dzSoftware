@@ -29,12 +29,10 @@
 ; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ; -----------------------------------------------------------------------------
 
+.NOLIST
 #include "src/equates.inc"
-#include "exp/BIOS.exp"
-#include "exp/kernel.exp"
-#include "exp/CLI.exp"
+#include "exp/dzOS.exp"
 #include "exp/sysvars.exp"
-
 .LIST
 
         .ORG    $4420                   ; start of code at start of free RAM

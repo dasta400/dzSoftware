@@ -41,7 +41,10 @@
 ;==============================================================================
 ; RETURN TO DZOS CLI
 ;==============================================================================
-        jp      cli_promptloop          ; return control to CLI
+; To return to CLI, jump to the address stored at SYSVARS.CLI_prompt_addr
+; This ensure that any changes in the Operating System won't affect your program
+        ld      HL, (CLI_prompt_addr)
+        jp      (HL)                    ; return control to CLI
 
 ;==============================================================================
 ; END of CODE

@@ -4119,11 +4119,9 @@ ARET:   RET                     ; A RETurn instruction
 GETINP: RST	    10H             ;input a character
         RET
 
-CLS: 
+CLS:    ; Dec/2022 - Adapted by David Asta
         call    F_KRN_SERIAL_CLRSCR
         ret
-        ; LD      A,CS            ; ASCII Clear screen
-        ; JP      MONOUT          ; Output character
 
 WIDTH:  CALL    GETINT          ; Get integer 0-255
         LD      A,E             ; Width to A
@@ -4336,10 +4334,14 @@ MONOUT:
         JP      $0008           ; output a char
 
 
-MONITR: 
-        JP      $278d           ; Nov/2022 - Adapted by David Asta,
-                                ; jump to dzOS CLI
-
+MONITR:     ; Dec/2022 - Adapted by David Asta,
+;==============================================================================
+; RETURN TO DZOS CLI
+;==============================================================================
+; To return to CLI, jump to the address stored at SYSVARS.CLI_prompt_addr
+; This ensure that any changes in the Operating System won't affect your program
+        ld      HL, ($40CE)
+        jp      (HL)                    ; return control to CLI
 
 INITST: LD      A,0             ; Clear break flag
         LD      (BRKFLG),A

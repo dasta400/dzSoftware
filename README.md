@@ -7,6 +7,9 @@ This is a repository of programs I develop (or adapt in the case of MS BASIC) fo
 * **Assembly** - Programs made with Z80 Assembly
   * **helloworld.asm** - A test I did to see if *load* and *run* commands work. It prints the expected text.
   * **msbasic.asm** - This is the MS BASIC 7.4b NASCOM 32 KB version that Grant Searle published in his [Grant's 7-chip Z80 computer](http://searle.x10host.com/z80/SimpleZ80.html) webpage, with my own modifications to make it run in [dzOS](https://github.com/dasta400/dzOS).
+  * **memdump** - shows, in hexadecimal, all the contents (bytes) of memory (RAM) locations between two addresses. After _run memdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
+  * **vramdump** - shows, in hexadecimal, all the contents (bytes) of video memory (VRAM) locations between two addresses. After _run vramdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
+  * **vdpsprite** - A test about showing a sprite on the VDP screen.
 * **C** - Programs made with [Small Device C Compiler (SDCC)](http://sdcc.sourceforge.net/)
   * **crt0.s** - Sets the vector address to the start of dastaZ80 free RAM (0x4420), and makes the exit() to jump back to dastaZ80 CLI.
   * **putchar.s** - Used by *printf*, calls F_BIOS_SERIAL_CONOUT_A.

@@ -28,7 +28,7 @@
 ; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
 ; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ; -----------------------------------------------------------------------------
-
+.NOLIST
 #include "src/_header.inc"
 
 ;==============================================================================
@@ -43,7 +43,14 @@ mypgmloop:
         inc     HL
         jp      mypgmloop
 mypgmend:
-        jp      cli_promptloop
+;==============================================================================
+; RETURN TO DZOS CLI
+;==============================================================================
+; To return to CLI, jump to the address stored at SYSVARS.CLI_prompt_addr
+; This ensure that any changes in the Operating System won't affect your program
+        ld      HL, (CLI_prompt_addr)
+        jp      (HL)                    ; return control to CLI
+
 hellow:
     .BYTE       "Hello World", $0D, $0A, 0
 
