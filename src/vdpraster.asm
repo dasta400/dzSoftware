@@ -1,15 +1,15 @@
 ;******************************************************************************
-; Name:         _header.inc
-; Description:  Standard include for software to be run on dastaZ80
-;               It contains the necessary includes and the standard load address
+; Name:         vdpraster.asm
+; Description:  VDP Interrupts test
+;               Run before and after disabling VDP interrupts to see the effect
 ; Author:       David Asta
-; License:      The MIT License
-; Created:      28 Aug 2022
+; License:      The MIT License 
+; Created:      05 Jan 2023
 ; Version:      1.0
-; Last Modif.:  28 Aug 2022
+; Last Modif.:  05 Jan 2023
 ;******************************************************************************
 ; --------------------------- LICENSE NOTICE ----------------------------------
-; Copyright (C) 2022 David Asta
+; Copyright (C) 2023 David Asta
 ;
 ; Permission is hereby granted, free of charge, to any person obtaining a copy 
 ; of this software and associated documentation files (the "Software"), to deal 
@@ -30,13 +30,32 @@
 ; -----------------------------------------------------------------------------
 
 .NOLIST
-#include "src/equates.inc"
-#include "exp/dzOS.exp"
-#include "exp/sysvars.exp"
+#include "src/_header.inc"              ; This include will add the other needed includes
+                                        ; And set the start of code at address $4420
 .LIST
 
-        .ORG    $4420                   ; start of code at start of free RAM
-        jp      $4425                   ; first instruction must jump to the executable code
-        .BYTE   $20, $44                ; load address (values must be same as .org above)
+;==============================================================================
+        ld      A, VDP_COLR_M_GRN
+        ld      (colour), A
+loop:
+        call    F_BIOS_VDP_VBLANK_WAIT
 
-        .ORG	$4425                   ; start of program (must be same as jp above)
+        ld      HL, colour
+        inc     (HL)
+        ld      A, 7
+        ld      B, (HL)
+        call    F_BIOS_VDP_SET_REGISTER
+
+        jr      loop                    ; Runs infinitely. No return to CLI
+
+;==============================================================================
+; Data
+;==============================================================================
+
+colour:
+        .BYTE   0
+
+;==============================================================================
+; END of CODE
+;==============================================================================
+        .END
