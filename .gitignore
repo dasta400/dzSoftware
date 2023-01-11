@@ -1,10 +1,23 @@
 bin/*
-exp/*
 lst/*
 SDCC/*
 !SDCC/src/
 !SDCC/compileSDCC.sh
 src/equates.inc
+
+exp
+
+makeimgfile*
+asmAndMakeImg.sh
+assembleAll.sh
+create_dz80img.sh
+*.img
+
+src/vdpint*.asm
+
+screens/*
+fonts/*.fn6
+fonts/*.fn8
 
 # The Telemark Assembler (TASM)
 TASM.EXE

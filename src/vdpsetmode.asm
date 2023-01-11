@@ -1,14 +1,17 @@
 ;******************************************************************************
-; Name:         jiffyview.asm
-; Description:  Shows current values of Jiffies bytes
+; Name:         vdpsetmode.asm
+; Description:  Changes the VDP mode acording to parameter received
+;               0=Text Mode, 1=Graphics I Mode, 2=Graphics II Mode,
+;               3=Multicolour Mode, 4=Graphics II Mode Bitmapped
+;
 ; Author:       David Asta
 ; License:      The MIT License 
-; Created:      26 Dec 2022
+; Created:      07 Jan 2023
 ; Version:      1.0
-; Last Modif.:  26 Dec 2022
+; Last Modif.:  07 Jan 2023
 ;******************************************************************************
 ; --------------------------- LICENSE NOTICE ----------------------------------
-; Copyright (C) 2022 David Asta
+; Copyright (C) 2023 David Asta
 ;
 ; Permission is hereby granted, free of charge, to any person obtaining a copy 
 ; of this software and associated documentation files (the "Software"), to deal 
@@ -33,54 +36,71 @@
                                         ; And set the start of code at address $4420
 .LIST
 
-        ld      HL, msg_welcome
-        call    F_KRN_SERIAL_WRSTR
+;==============================================================================
+        ; Check parameter was received
+        ld      HL, CLI_buffer_full_cmd ; command entered by user is here
+                                        ; and it will be in the form:
+                                        ;   run vdpsetmode nCR
+                                        ;   0123456789012345
+                                        ; Hence, n will be in position 15
+        ld      BC, 15
+        add     HL, BC                  ; pointer to the 15th byte
+        ld      A, (HL)                 ; get the byte
+        call    F_KRN_IS_NUMERIC        ; and check  if it's a number (C Flag set)
+        jp      nc, _error_param        ; if no numeric, error
 
-_showvalues:
-        ; Show values
-        ld      B, 1
-        call    F_KRN_SERIAL_EMPTYLINES
+        cp      $30
+        jp      z, _set_mode0
+        cp      $31
+        jp      z, _set_mode1
+        cp      $32
+        jp      z, _set_mode2
+        cp      $33
+        jp      z, _set_mode3
+        cp      $34
+        jp      z, _set_mode4
         
-        ld      A, (VDP_jiffy_byte1)
-        call    F_KRN_SERIAL_PRN_BYTE
-        ld      A, ' '
-        call    F_BIOS_SERIAL_CONOUT_A
-
-        ld      A, (VDP_jiffy_byte2)
-        call    F_KRN_SERIAL_PRN_BYTE
-        ld      A, ' '
-        call    F_BIOS_SERIAL_CONOUT_A
-
-        ld      A, (VDP_jiffy_byte3)
-        call    F_KRN_SERIAL_PRN_BYTE
-
-        ; Wait for key press
-        call    F_BIOS_SERIAL_CONIN_A
-        cp      ESC                     ; if pressed key was ESC, exit
-        jp      nz, _showvalues         ; else, show more values
-
-exitpgm:
-        ld      HL, msg_goodbye
+        ld      HL, err_mode
         call    F_KRN_SERIAL_WRSTR
+        jr      exitpgm
+
+
+_set_mode0:
+        call    F_BIOS_VDP_SET_MODE_TXT
+        jr      exitpgm
+_set_mode1:
+        call    F_BIOS_VDP_SET_MODE_G1
+        jr      exitpgm
+_set_mode2:
+        call    F_BIOS_VDP_SET_MODE_G2
+        jr      exitpgm
+_set_mode3:
+        call    F_BIOS_VDP_SET_MODE_MULTICLR
+        jr      exitpgm
+_set_mode4:
+        call    F_BIOS_VDP_SET_MODE_G2BM
+        jr      exitpgm
+
+_error_param:
+        ld      HL, err_param
+        call    F_KRN_SERIAL_WRSTR
+
 ;==============================================================================
 ; RETURN TO DZOS CLI
 ;==============================================================================
-; To return to CLI, jump to the address stored at SYSVARS.CLI_prompt_addr
-; This ensure that any changes in the Operating System won't affect your program
+exitpgm:
         ld      HL, (CLI_prompt_addr)
         jp      (HL)                    ; return control to CLI
 
 ;==============================================================================
 ; Messages
 ;==============================================================================
-msg_welcome:
-        .BYTE   CR, LF, CR, LF
-        .BYTE   "jiffyview - Shows current values of Jiffies bytes.", 0
+err_param:
         .BYTE   CR, LF
-        .BYTE   "Press any key for more values or ESC to exit.", 0
-msg_goodbye:
+        .BYTE   "Parameter missing or it was not a number.", 0
+err_mode:
         .BYTE   CR, LF
-        .BYTE   "Goodbye!", 0
+        .BYTE   "Mode number incorrect. Valid modes 0 to 4.", 0
 
 ;==============================================================================
 ; END of CODE
