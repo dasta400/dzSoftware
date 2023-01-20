@@ -17,6 +17,7 @@ This is a repository of programs I develop (or adapt in the case of MS BASIC) fo
   * **vdpsetmode** - A test of changing VDP screen modes.
   * **loadscr** - Loads and displays a raw bitmap image.
   * **loadfont** - Loads a font file to be used for text output.
+  * **psgtest** - A program to test the sound output of the AY-3-8912.
 * **C** - Programs made with [Small Device C Compiler (SDCC)](http://sdcc.sourceforge.net/)
   * **crt0.s** - Sets the vector address to the start of dastaZ80 free RAM (0x4420), and makes the exit() to jump back to dastaZ80 CLI.
   * **putchar.s** - Used by _printf_, calls F_BIOS_SERIAL_CONOUT_A.

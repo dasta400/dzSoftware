@@ -16,6 +16,7 @@ create_dz80img.sh
 src/vdpint*.asm
 
 screens/*
+*.lst
 fonts/*.fn6
 fonts/*.fn8
 
