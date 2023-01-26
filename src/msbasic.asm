@@ -4340,7 +4340,7 @@ MONITR:     ; Dec/2022 - Adapted by David Asta,
 ;==============================================================================
 ; To return to CLI, jump to the address stored at SYSVARS.CLI_prompt_addr
 ; This ensure that any changes in the Operating System won't affect your program
-        ld      HL, ($40CE)
+        ld      HL, (CLI_prompt_addr)
         jp      (HL)                    ; return control to CLI
 
 INITST: LD      A,0             ; Clear break flag
@@ -4362,41 +4362,15 @@ OUTNCR: CALL    OUTC            ; Output character in A
 
 
 LOAD:   ; Dec/2022 - Added by David Asta
-        dec     HL                      ; GETCHR will INCrease
-        call    GETCHR                  ; check if there is text after save command
-        jp      z, SNERR                ; if not, syntax error
         call    EVAL
-        ld      A, (TYPE)               ; get variable type
-        or      A                       ; and check if it's a string
-        jp      z, SNERR                ; if not, syntax error
-
-        ; load string name (Todo - GETSTR instead?)
-        call    TSTSTR                  ; is it a string?
-        call    GSTRCU                  ; Get current string
-        call    LOADFP                  ; BC=string pointer, E=length
-        ld      D, 0                    ; remove D
-        ld      A, E                    ; if it's a
-        and     A                       ;   null string
-        jp      z, SNERR                ;   syntax error
-
-        ; ld      (tmp_addr1), BC         ; SYSVARS.tmp_addr1 = string address
-
-        ; add a string terminator ($00) at the end of the string
-        ; it will substitute the last " with a zero
-        ld      H, B
-        ld      L, C                    ; HL = string address
-        xor     A                       ; clear Carry flag
-        add     HL, DE                  ; address + length
-        ld      A, 0                    ;   and change it
-        ld      (HL), A                 ;   for a string terminator
-
-        ; Search filename in BAT
-        ; Check that filename exists
+        call    GSTRCU                  ; Current string to pool
+        call    LOADFP                  ; Move string block to BCDE
+        ; Search filename in BAT, to check that filename exists
         ; Parameters for F_KRN_DZFS_CHECK_FILE_EXISTS
         ;   IN <= HL = Address where the filename to check is stored
         ;   OUT => Zero Flag set if filename not found
         ld      H, B
-        ld      L, C                    ; HL = string pointer from LOADFP
+        ld      L, C
         call    F_KRN_DZFS_CHECK_FILE_EXISTS
         jp      z, load_notfound        ; filename not found error
 
@@ -4406,7 +4380,7 @@ LOAD:   ; Dec/2022 - Added by David Asta
         ;   DISK_loadsave_addr = address where the file will be stored in memory
         ld      DE, (DISK_cur_file_1st_sector)
         ld      IX, (DISK_cur_file_size_sectors)
-        ld      HL, PROGST
+        ld      HL, PROGND              ; Start of area saved
         ld      (DISK_loadsave_addr), HL
         call    F_KRN_DZFS_LOAD_FILE_TO_RAM
 
@@ -4418,31 +4392,26 @@ load_notfound:
         jp      ERROR
 
 SAVE:   ; Dec/2022 - Added by David Asta
-        dec     HL                      ; GETCHR will INCrease
-        call    GETCHR                  ; check if there is text after save command
-        jp      z, SNERR                ; if not, syntax error
+        ; copy filename to a temporary location (CLI_buffer_pgm)
+        ; and add a string terminator ($0) at the end of the filename
         call    EVAL
-        ld      A, (TYPE)               ; get variable type
-        or      A                       ; and check if it's a string
-        jp      z, SNERR                ; if not, syntax error
-
-        ; load string name (Todo - GETSTR instead?)
-        call    TSTSTR                  ; is it a string?
-        call    GSTRCU                  ; Get current string
-        call    LOADFP                  ; BC=string pointer, E=length
-        ld      D, 0                    ; remove D
-        ld      A, E                    ; if it's a
-        and     A                       ;   null string
-        jp      z, SNERR                ;   syntax error
-
-        ; add a string terminator ($00) at the end of the string
-        ; it will substitute the last " with a zero
-        ld      H, B
-        ld      L, C                    ; HL = string address
-        xor     A                       ; clear Carry flag
-        add     HL, DE                  ; address + length
-        ld      A, 0                    ;   and change it
-        ld      (HL), A                 ;   for a string terminator
+        call    GSTRCU                  ; Current string to pool
+        call    LOADFP                  ; Move string block to BCDE
+        inc     E
+        ld      IX, CLI_buffer_pgm      ; filename will be copied to dzOS SYSVARS
+_save_flname:
+        dec     E
+        jr      z, _add_termntr
+        ld      A, (BC)
+        ld      (IX), A
+        cp      CR
+        call    z, _add_termntr
+        inc     BC
+        inc     IX
+        jp      _save_flname
+_add_termntr:
+        inc     IX
+        ld      (IX), 0
 
         ; Set File Type to BAS ($03) and Attributes to None ($00)
         ld      A, $03                  ; File Type = BAS
@@ -4450,24 +4419,21 @@ SAVE:   ; Dec/2022 - Added by David Asta
         ld      A, $00
         ld      (DISK_cur_file_attribs), A
 
-        ; Calculate the length of the BASIC program:
-        ;   length = value at PROGND - PROGST
-        ld      HL, (PROGND)
-        ld      DE, PROGST
+        ; Calculate the length of the BASIC program
+        ld      DE, PROGND              ; Start of program information
+        ld      HL, (PROGND)            ; End of program information
         xor     A
-        sbc     HL, DE                  ; HL = length of BASIC program
-
+        sbc     HL, DE                  ; number of bytes to store
         ; Parameters for F_KRN_DZFS_CREATE_NEW_FILE
         ;   HL = address of first byte to be stored
         ;   BC = number of bytes to be stored
         ;   IX = address where the filename is stored
-        ld      (tmp_addr1), BC         ; tmp_addr1 = string address
-        ld      IX, (tmp_addr1)         ; IX = address where the filename is stored
         ld      B, H
-        ld      C, L                    ; BC = number of bytes to be stored
-        ld      HL, PROGST              ; HL = address first byte to be stored
-        
+        ld      C, L
+        ld      HL, PROGND              ; Start of program information
+        ld      IX, CLI_buffer_pgm
         call    F_KRN_DZFS_CREATE_NEW_FILE
+
         call    PRNTOK
         ret
 
