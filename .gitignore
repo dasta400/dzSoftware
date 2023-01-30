@@ -8,9 +8,7 @@ src/equates.inc
 exp
 
 makeimgfile*
-asmAndMakeImg.sh
-assembleAll.sh
-create_dz80img.sh
+*.sh
 *.img
 
 src/vdpint*.asm
