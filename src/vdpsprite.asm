@@ -57,7 +57,7 @@ vdp_init:
         ; ld      B, $E2                  ; 16K, Enable Disp., Enable Int., 16x16 Sprites, Mag. Off
         call    F_BIOS_VDP_SET_REGISTER
 
-        ; Copy Sprite date to VRAM
+        ; Copy Sprite data to VRAM
         ld      HL, VDP_G2_SPRP_TAB
         call    F_BIOS_VDP_SET_ADDR_WR
         ld      IX, ship_spr
