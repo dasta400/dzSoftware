@@ -20,7 +20,6 @@
 ; the original ROM code (checksum A934H). PA
 
 ; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;       List of changes:
 ;               - WRKSPC changed
 ;               - The main .ORG address is $4420 instead of 00150H
 ; Nov/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
@@ -28,9 +27,12 @@
 ; Dec/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
 ;               - Added LOAD and SAVE
 ;               - Added LE error for LOAD
-; Jan/2022
-;               - Moved work space locations to the ned of this file
+; Jan/2023 - Adapted by David Asta
+;               - Moved work space locations to the end of this file
 ;               - Added SOUND command
+;               - Re-Added SCREEN, but different functionality than in NASCOM 2
+;               - Set RESET reflection to F_BIOS_WBOOT
+; Jul/2023 - Changed LDs for PUSH/POP in SOUND subroutine. It's 5 clock cycles faster.
 
 .NOLIST                                                 ; Dec/2022 - Added by David Asta
 #include "src/_header.inc"                              ; Dec/2022 - Added by David Asta
@@ -76,6 +78,7 @@ MO      .EQU    24H             ; Missing operand
 HX      .EQU    26H             ; HEX error
 BN      .EQU    28H             ; BIN error
 LE      .EQU    2AH             ; LOAD File not found - Dec/2022 - Added by David Asta
+UM      .EQU    2CH             ; Unknown VDP screen mode - Jan/2023 - Added by David Asta
 
 .LIST                                                   ; Dec/2022 - Added by David Asta
 
@@ -234,7 +237,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'D'+80H,"EF"
         .BYTE   'P'+80H,"OKE"
         .BYTE   'D'+80H,"OKE"
-        .BYTE   'S'+80H,"CREEN"
+        .BYTE   'S'+80H,"CREEN"         ; Jan/2023 - Added by David Asta
         .BYTE   'L'+80H,"INES"
         .BYTE   'C'+80H,"LS"
         .BYTE   'W'+80H,"IDTH"
@@ -337,7 +340,7 @@ WORDTB: .WORD   PEND
         .WORD   CLEAR
         .WORD   LOAD                    ; Dec/2022 - Adapted by David Asta
         .WORD   SAVE                    ; Dec/2022 - Adapted by David Asta
-        .WORD   SOUND                   ; Jan/2023 0 Added by David Asta
+        .WORD   SOUND                   ; Jan/2023 - Added by David Asta
         .WORD   NEW
 
 ; RESERVED WORD TOKEN VALUES
@@ -464,7 +467,7 @@ INITAB: JP      WARMST          ; Warm start jump
         JP      TTYLIN          ; Input reflection (set to TTY)
         JP      $0000           ; POINT reflection unused
         JP      $0000           ; SET reflection
-        JP      $0000          	; RESET reflection
+        JP      F_BIOS_WBOOT    ; RESET reflection    ; Jan/2023 - Adapted by David Asta
         .WORD   STLOOK          ; Temp string space
         .WORD   -2              ; Current line number (cold)
         .WORD   PROGST+1        ; Start of program text
@@ -4382,7 +4385,7 @@ SOUND:   ; Jan/2023 - Added by David Asta
 ; Writes a value in a specific PSG register.
 ; SOUND <PSGregister>,<Value> 
         call    GETINT                  ; get PSGregister
-        ld      (tmp_byte), A           ; backup PSGregister
+        push    AF                      ; backup PSGregister
         call    CHKSYN                  ; check that comma follows PSGregister
         .BYTE   ','
         call    GETINT                  ; get Value
@@ -4390,9 +4393,49 @@ SOUND:   ; Jan/2023 - Added by David Asta
         ;   A = register number
         ;   E = value to set
         ld      E, A
-        ld      A, (tmp_byte)           ; restore PSGregister
+        pop     AF                      ; restore PSGregister
         call    F_BIOS_PSG_SET_REGISTER
         ret
+
+SCREEN:   ; Jan/2023 - Added by David Asta
+; Changes the VDP screen mode
+;   0=Text Mode
+;   1=Graphics I Mode
+;   2=Graphics II Mode
+;   3=Multicolour Mode
+;   4=Graphics II Mode Bitmapped
+        call    GETINT                  ; get screen mode number
+        cp      0
+        jp      z, _set_mode0
+        cp      1
+        jp      z, _set_mode1
+        cp      2
+        jp      z, _set_mode2
+        cp      3
+        jp      z, _set_mode3
+        cp      4
+        jp      z, _set_mode4
+
+        ; none of the above, mode unknown
+        ld      E, UM                   ; Unknown VDP screen mode
+        jp      ERROR
+
+_set_mode0:
+        call    F_BIOS_VDP_SET_MODE_TXT
+        ret
+_set_mode1:
+        call    F_BIOS_VDP_SET_MODE_G1
+        ret
+_set_mode2:
+        call    F_BIOS_VDP_SET_MODE_G2
+        ret
+_set_mode3:
+        call    F_BIOS_VDP_SET_MODE_MULTICLR
+        ret
+_set_mode4:
+        call    F_BIOS_VDP_SET_MODE_G2BM
+        ret
+
 
 ;==================================================================================
 ; BASIC WORK SPACE LOCATIONS
