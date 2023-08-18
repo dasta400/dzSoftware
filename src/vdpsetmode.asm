@@ -8,7 +8,7 @@
 ; License:      The MIT License 
 ; Created:      07 Jan 2023
 ; Version:      1.0
-; Last Modif.:  07 Jan 2023
+; Last Modif.:  18 Aug 2023
 ;******************************************************************************
 ; --------------------------- LICENSE NOTICE ----------------------------------
 ; Copyright (C) 2023 David Asta
@@ -37,14 +37,8 @@
 .LIST
 
 ;==============================================================================
-        ; Check parameter was received
-        ld      HL, CLI_buffer_full_cmd ; command entered by user is here
-                                        ; and it will be in the form:
-                                        ;   run vdpsetmode nCR
-                                        ;   0123456789012345
-                                        ; Hence, n will be in position 15
-        ld      BC, 15
-        add     HL, BC                  ; pointer to the 15th byte
+        ; Check parameter is numeric
+        ld      HL, CLI_buffer_parm1_val  ; parameter entered by user
         ld      A, (HL)                 ; get the byte
         call    F_KRN_IS_NUMERIC        ; and check  if it's a number (C Flag set)
         jp      nc, _error_param        ; if no numeric, error

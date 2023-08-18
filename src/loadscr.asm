@@ -7,7 +7,7 @@
 ; License:      The MIT License 
 ; Created:      09 Jan 2023
 ; Version:      1.0
-; Last Modif.:  09 Jan 2023
+; Last Modif.:  18 Aug 2023
 ;******************************************************************************
 ; --------------------------- LICENSE NOTICE ----------------------------------
 ; Copyright (C) 2023 David Asta
@@ -36,34 +36,8 @@
 .LIST
 
 ;==============================================================================
-        ; Check parameter was received
-        ld      HL, CLI_buffer_full_cmd ; command entered by user is here
-                                        ; and it will be in the form:
-                                        ;   run loadscr <filename> CR (0D)
-                                        ;   01234567890123
-                                        ; Hence, filename starts at position 12
-        ld      BC, 11
-        add     HL, BC                  ; pointer to the 11th byte
-        ld      A, (HL)                 ; if the 11th character
-        cp      CR                      ;   is a CR, no parameter was entered
-        jp      z, error_param          ;   then error
-        inc     HL                      ; filename starts at position 12
-
-        ; F_KRN_DZFS_CHECK_FILE_EXISTS checks for filenames terminated with 0,
-        ; so we need to change the CR for a zero
-        ld      B, CR                   ; search for CR
-        ld      D, CR                   ; filename terminates with CR
-        call    F_KRN_INSTR             ; E = position of character in string
-
-        ; Substitute CR by 0
-        ld      D, 0
-        push    HL                      ; Backup start of filename address
-        add     HL, DE
-        ld      A, 0
-        ld      (HL), A
-        pop     HL
-
-        call    do_checks
+        ld      HL, CLI_buffer_parm1_val  ; filename entered by user
+        call    check_file_exists
         call    change_to_file_mode
         ; SC files are a dump of VRAM, hence we just need to copy each byte from
         ; the disk buffer to VRAM, starting at VRAM $0000
@@ -79,7 +53,7 @@
 
         jp      exitpgm
 ; -----------------------------------------------------------------------------
-do_checks:
+check_file_exists:
         ; Check if specified file exist
         call    F_KRN_DZFS_CHECK_FILE_EXISTS
         jp      z, error_nofile         ; filename not found, error and exit
