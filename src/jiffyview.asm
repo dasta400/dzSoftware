@@ -74,9 +74,8 @@ exitpgm:
 ; Messages
 ;==============================================================================
 msg_welcome:
-        .BYTE   CR, LF, CR, LF
-        .BYTE   "jiffyview - Shows current values of Jiffies bytes.", 0
         .BYTE   CR, LF
+        .BYTE   "jiffyview - Shows current values of Jiffies bytes.", CR, LF
         .BYTE   "Press any key for more values or ESC to exit.", 0
 msg_goodbye:
         .BYTE   CR, LF
