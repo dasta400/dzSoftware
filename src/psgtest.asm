@@ -2,6 +2,7 @@
 ; Name:         psgtest.asm
 ; Description:  AY-3-8912 PSG test
 ;               Adapted from https://www.chibiakumas.com/z80/platform2.php#LessonP18
+;               Increments accumulator (from 0 to 255) and sends the value to the PSG chip
 ; Author:       David Asta
 ; License:      The MIT License
 ; Created:      20 Jan 2023
