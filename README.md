@@ -6,18 +6,34 @@ This is a repository of programs I develop (or adapt in the case of MS BASIC) fo
 
 * **Assembly** - Programs made with Z80 Assembly
   * **helloworld.asm** - A test I did to see if _load_ and _run_ commands work. It prints the expected text.
-  * **msbasic.asm** - This is the MS BASIC 7.4b NASCOM 32 KB version that Grant Searle published in his [Grant's 7-chip Z80 computer](http://searle.x10host.com/z80/SimpleZ80.html) webpage, with my own modifications to make it run in [dzOS](https://github.com/dasta400/dzOS).
-  * **memdump** - shows, in hexadecimal, all the contents (bytes) of memory (RAM) locations between two addresses. After _run memdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
-  * **vramdump** - shows, in hexadecimal, all the contents (bytes) of video memory (VRAM) locations between two addresses. After _run vramdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
   * **jiffyview** - Shows current values of Jiffies bytes.
+  * **loadfont** - Loads a font file to be used for text output.
+  * **loadscr** - Loads and displays a raw bitmap image.
+  * **memdump** - shows, in hexadecimal, all the contents (bytes) of memory (RAM) locations between two addresses. After _run memdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
+  * **mlmonitor** - Machine Language Monitor.
+    * Right now it allows to:
+      * Execute from a specified memory address.
+      * Fill a range of locations with a specified byte.
+      * Display memory as a hexadecimal dump (same as _memdump_).
+      * Modify a single memory address (_poke_) with a specified value.
+      * Display the value (_peek_) from a memory address.
+      * Transfer segments of memory from one memory area to another.
+    * Future features planned:
+      * Assemble a line of assembly code into memory.
+      * Disassemble a memory area from machine code into assembly language.
+      * Load data from disk into memory.
+      * Modify a single video memory address (_vpoke_) with a specified value.
+      * Display the value (_vpeek_) from a video memory address.
+      * Display video memory (_vmemdump_) as a hexadecimal dump.
+      * Save the contents of memory onto disk.
+  * **msbasic.asm** - This is the MS BASIC 7.4b NASCOM 32 KB version that Grant Searle published in his [Grant's 7-chip Z80 computer](http://searle.x10host.com/z80/SimpleZ80.html) webpage, with my own modifications to make it run in [dzOS](https://github.com/dasta400/dzOS).
+  * **psgtest** - A program to test the sound output of the AY-3-8912.
   * **testjoys** - A small tool I wrote to test the Dual Joystick Port. Moving or pressing the fire buttons on any of the two joysticks shows a message on the screen telling what was pressed.
-  * **vdpsprite** - A test showing a sprite on the VDP screen.
-  * **vdptext** - A test showing text on the VDP screen.
   * **vdpraster** - A test of VDP Interrupts on the VDP screen.
   * **vdpsetmode** - A test of changing VDP screen modes.
-  * **loadscr** - Loads and displays a raw bitmap image.
-  * **loadfont** - Loads a font file to be used for text output.
-  * **psgtest** - A program to test the sound output of the AY-3-8912.
+  * **vdpsprite** - A test showing a sprite on the VDP screen.
+  * **vdptext** - A test showing text on the VDP screen.
+  * **vramdump** - shows, in hexadecimal, all the contents (bytes) of video memory (VRAM) locations between two addresses. After _run vramdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
 * **C** - Programs made with [Small Device C Compiler (SDCC)](http://sdcc.sourceforge.net/)
   * **crt0.s** - Sets the vector address to the start of dastaZ80 free RAM (0x4420), and makes the exit() to jump back to dastaZ80 CLI.
   * **putchar.s** - Used by _printf_, calls F_BIOS_SERIAL_CONOUT_A.
