@@ -38,7 +38,7 @@
         call    F_KRN_SERIAL_WRSTR
 
         ; Reset Lastchar and tmp_byte variables
-        ld      A, 0
+        xor     A
         ld      (SIO_CH_A_LASTCHAR), A
         ld      (tmp_byte), A
         ; call    F_BIOS_VDP_VBLANK_WAIT

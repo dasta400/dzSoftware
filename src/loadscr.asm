@@ -145,7 +145,7 @@ rebuild_name_table:
         ld      HL, VDP_G2_NAME_TAB
         call    F_BIOS_VDP_SET_ADDR_WR
         ld      B, 0                            ; byte counter (256 times)
-        ld      A, 0                            ; all bytes will be set to zero
+        xor     A                               ; all bytes will be set to zero
 _clear_loop:
         call    F_BIOS_VDP_BYTE_TO_VRAM         ; copy two bytes each time
         inc     A

@@ -36,6 +36,9 @@
 ;==============================================================================
         call    vdp_init
 
+        ld      HL, msg_welcome
+        call    F_KRN_SERIAL_WRSTR
+
 main_loop:
         ld      A, (SIO_CH_A_LASTCHAR)  ; Get last char stored value
         cp      ESC                     ; If it was a ESC
@@ -135,6 +138,12 @@ exitpgm:
         ld      HL, (CLI_prompt_addr)
         jp      (HL)                    ; return control to CLI
 
+;==============================================================================
+; Messages
+;==============================================================================
+msg_welcome:
+        .BYTE   CR, LF
+        .BYTE   "Use joystick to move sprite around. ESC to exit.", CR, LF, 0
 ;==============================================================================
 ; Data
 ;==============================================================================

@@ -39,7 +39,7 @@
         ld      HL, msg_welcome
         call    F_KRN_SERIAL_WRSTR
 
-        ld      A, 0
+        xor     A
         ld      (tmp_byte), A
 test_loop:
         ld      A, (SIO_CH_A_LASTCHAR)  ; Get last char stored value

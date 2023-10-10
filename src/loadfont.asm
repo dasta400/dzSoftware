@@ -62,10 +62,9 @@ check_file_exists:
         srl     A                       ;   nibble
         srl     A                       ;   of A
         cp      $6
-        jp      z, _valid_file
+        jr      z, _valid_file
         cp      $8
-        jp      z, _valid_file
-        jp      error_nofont            ; neither $6 nor $8
+        jp      nz, error_nofont        ; neither $6 nor $8
 
 _valid_file:
         ; Check if font type in the specified file corresponds to current VDP mode
@@ -75,20 +74,18 @@ _valid_file:
         ;           1  +     8 (FN8)    =   9
         ;           2  +     8 (FN8)    =   10 ($A)
         ; which means that after type + mode, only $6, $9 or $A are valid
-        ld      HL, VDP_cur_mode
-        add     A, (HL)                 ; A= file type + mode
+        ld      HL, VDP_cur_mode        ; get mode address
+        add     A, (HL)                 ; A = file type (from attribs.) + mode
         cp      $6                      ; Is A = $6 ?
-        jp      z, _valid               
+        ret     z                       ; yes, all good. Return
         cp      $9                      ; If not, is A = $9 ?
-        jp      z, _valid
+        ret     z                       ; yes, all good. Return
         cp      $A                      ; If not, is A = $A ?
-        jp      z, _valid
-_no_valid:                              ; neither $6, $9, nor $A. Error
+        ret     z                       ; yes, all good. Return
+        ; neither $6, $9, nor $A. Error
         ld      HL, err_mode
         call    F_KRN_SERIAL_WRSTR
         jr      exitpgm
-_valid:
-        ret
 ; -----------------------------------------------------------------------------
 copy_to_vram:
 ; Load bytes from file and transfer to VRAM

@@ -43,7 +43,7 @@
         ; Print all 256 ASCII Characters
         call    F_BIOS_VDP_DI
         ld      B, 0                    ; will count 256 characters
-        ld      A, 0                    ; will start with character $0
+        xor     A                       ; will start with character $0
 _fill_name_table:
         push    AF
         push    BC
