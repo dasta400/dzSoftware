@@ -70,12 +70,16 @@
         ld      A, (CLI_buffer_parm1_val)   ; get what's in param1
         cp      0                           ; was a parameter specified?
         jp      z, bad_params               ; no, show error and exit
+        ld      HL, CLI_buffer_parm1_val
+        call    convert_param_to_upper
         ; Check that both parameter 2 was specified
         ld      A, (CLI_buffer_parm2_val)   ; get what's in param2
         cp      0                           ; was a parameter specified?
         jp      z, bad_params               ; no, show error and exit
+        ld      HL, CLI_buffer_parm2_val
+        call    convert_param_to_upper
+        
         ; Both parameters specified, continue
-
         ; convert params from ASCII to hexadecimal
         ld      IX, CLI_buffer_parm1_val    ; start address
         call    F_KRN_ASCIIADR_TO_HEX       ; HL = converted hex value
@@ -85,13 +89,13 @@
         call    F_KRN_ASCIIADR_TO_HEX       ; HL = converted hex value
         dec     HL                          ; decrement 1 for zero value of counter
 
-        ; calculate total numbe rof bytes to receive
+        ; calculate total number of bytes to receive
         ccf                                 ; the total number of bytes 
         adc     HL, HL                      ;   to receive needs to be doubled
 
         pop     IY                          ; IX = converted start address
         ld      DE, 2                       ; each loop, decrement counter by 2 (a pair)
-        ld      B, 32                       ; break line after printing 80 dots
+        ld      B, 32                       ; break line after printing 32 dots
         ccf                                 ; clear Carry flag for next 'sbc' operations
 rcv_loop:
         dec     B                           ; if already printed
@@ -106,11 +110,13 @@ no_reset_counter:
         push    HL                          ; backup bytes counter
         ;   1st byte
         call    F_BIOS_SERIAL_CONIN_A       ; receive 1st byte
+        call    F_KRN_TOUPPER               ; convert to uppercase
         ld      H, A                        ; store it in H
         ld      A, '.'                      ; print a dot to show that a byte
         call    F_BIOS_SERIAL_CONOUT_A      ;   has been received
         ;   2nd byte
         call    F_BIOS_SERIAL_CONIN_A       ; receive 2nd byte
+        call    F_KRN_TOUPPER               ; convert to uppercase
         ld      L, A                        ; store it in L
         ld      A, '.'                      ; print a dot to show that a byte
         call    F_BIOS_SERIAL_CONOUT_A      ;   has been received
@@ -142,12 +148,24 @@ bad_params:
         ld      A, (col_CLI_error)
         call    F_KRN_SERIAL_WRSTRCLR
         jr      exitpgm
+;------------------------------------------------------------------------------
+convert_param_to_upper:
+; convert the 4 digits of the param pointed by HL to upper
+        ld      B, 4
+_convert_loop:
+        ld      A, (HL)
+        call    F_KRN_TOUPPER
+        ld      (HL), A
+        inc     HL
+        djnz    _convert_loop
+        ret
 ;==============================================================================
 ; Messages
 ;==============================================================================
 msg_welcome:
         .BYTE   CR, LF,
         .BYTE   "pastefile v1.0.0", CR, LF
+        .BYTE   "Remember to set a Character delay of 1ms in your Terminal software.", CR, LF
         .BYTE   "Ready to receive.", CR, LF, 0
 msg_goodbye:
         .BYTE   CR, LF
