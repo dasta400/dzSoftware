@@ -29,7 +29,16 @@ It's great for testing new software during development, as you don't need to
 copy the binary to an SD card and extract/insert the SD card all the time in
 your PC and then in the dastaZ80.
 
-Also, the read/write speed is much better. ????????????
+Also, the read speed is 3.8 times faster. Here are some benchmark tests I did
+with my Linux PC:
+
+| Program loaded | Length (bytes) | ASMDC Load Time (seconds) | Serial HDD Simul Load Time (seconds) |
+| -------------- |:--------------:| -------------------------:| -------------------:|
+| msbasic        | 7,737          | 4.58                      | 1.18 |
+| mlmonitor      | 10,713         | 6.08                      | 1.60 |
+| loadscr        | 14,336         | 8.70                      | 2.18 |
+
+I haven't tested write times because it's still not working (bug), but I assume it will be similar.
 
 * Parameters
   * **serial_port** (e.g. _/dev/ttyUSB0_)
