@@ -1,4 +1,5 @@
 bin/*
+roms/*
 lst/*
 SDCC/*
 !SDCC/src/
@@ -7,7 +8,6 @@ src/equates.inc
 
 exp
 
-makeimgfile*
 *.sh
 *.img
 
@@ -18,6 +18,8 @@ audios/*
 *.lst
 fonts/*.fn6
 fonts/*.fn8
+
+DiskTools/makeimgfile
 
 # The Telemark Assembler (TASM)
 TASM.EXE

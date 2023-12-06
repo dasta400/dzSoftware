@@ -18,6 +18,7 @@ This is a repository of programs I develop (or adapt in the case of MS BASIC) fo
       * Modify a single memory address (_poke_) with a specified value.
       * Display the value (_peek_) from a memory address.
       * Transfer segments of memory from one memory area to another.
+      * Enter hexadecimal values to consecutive addresses from a start address.
     * Future features planned:
       * Assemble a line of assembly code into memory.
       * Disassemble a memory area from machine code into assembly language.
