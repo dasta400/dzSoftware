@@ -19,40 +19,103 @@
 ; Adapted for the freeware Zilog Macro Assembler 2.10 to produce
 ; the original ROM code (checksum A934H). PA
 
-; Jul/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;               - WRKSPC changed
-;               - The main .ORG address is $4420 instead of 00150H
-; Nov/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;               - MONITR jumps to CLI ($278d) instead of $0000
-; Dec/2022 - Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
-;               - Added LOAD and SAVE
-;               - Added LE error for LOAD
-; Jan/2023 - Adapted by David Asta
-;               - Moved work space locations to the end of this file
-;               - Added SOUND command
-;               - Re-Added SCREEN, but different functionality than in NASCOM 2
-;               - Set RESET reflection to F_BIOS_WBOOT
-; Jul/2023 - Changed LDs for PUSH/POP in SOUND subroutine. It's 5 clock cycles faster.
+; Adapted by David Asta, for running under DZOS on dastaZ80 homebrew computer
+;   Jul/2022 - WRKSPC changed to .EQU START_HIGHRAM
+;            - The main .ORG address is START_HIGHRAM ($4420) instead of 00150H
+;   Nov/2022 - MONITR jumps to dzOS' CLI instead of $0000
+;   Dec/2022 - Added LOAD and SAVE
+;            - Added LE error for LOAD
+;   Jan/2023 - Set RESET reflection to F_BIOS_WBOOT
+;   Nov/2023 - Removed "Memory Top?" and just use always max. memory
+;            - Changed WIDTH (I have not use for it) for CAT (shows BASIC files in disk)
+;   Dec/2023 - Added COLOUR
 
-.NOLIST                                                 ; Dec/2022 - Added by David Asta
-#include "src/_header.inc"                              ; Dec/2022 - Added by David Asta
-.NOLIST                                                 ; Dec/2022 - Added by David Asta
+.NOLIST                                                 ; Jul/2022 - Added by David Asta
+#include "src/_header.inc"                              ; Jul/2022 - Added by David Asta
+.NOLIST                                                 ; Jul/2022 - Added by David Asta
 
 ; GENERAL EQUATES
 
 CTRLC   .EQU    03H             ; Control "C"
 CTRLG   .EQU    07H             ; Control "G"
-BKSP    .EQU    08H             ; Back space
-; LF      .EQU    0AH             ; Line feed           ; Dec/2022 - Adapted by David Asta
-CS      .EQU    0CH             ; Clear screen
-; CR      .EQU    0DH             ; Carriage return     ; Dec/2022 - Adapted by David Asta
+; BKSP    .EQU    08H             ; Back space          ; Nov/2023 - Removed by David Asta
+; LF      .EQU    0AH             ; Line feed           ; Jul/2022 - Removed by David Asta
+; CS      .EQU    0CH             ; Clear screen        ; Nov/2023 - Removed by David Asta
+; CR      .EQU    0DH             ; Carriage return     ; Jul/2022 - Removed by David Asta
 CTRLO   .EQU    0FH             ; Control "O"
-CTRLQ	.EQU	11H		        ; Control "Q"
+CTRLQ    .EQU    11H                ; Control "Q"
 CTRLR   .EQU    12H             ; Control "R"
 CTRLS   .EQU    13H             ; Control "S"
 CTRLU   .EQU    15H             ; Control "U"
-; ESC     .EQU    1BH             ; Escape              ; Dec/2022 - Adapted by David Asta
-DEL     .EQU    7FH             ; Delete
+; ESC     .EQU    1BH             ; Escape              ; Jul/2022 - Removed by David Asta
+; DEL     .EQU    7FH             ; Delete              ; Nov/2023 - Removed by David Asta
+
+; BASIC WORK SPACE LOCATIONS
+
+WRKSPC  .EQU    START_HIGHRAM       ; BASIC Work space  ; Jul/2022 - Adapted by David Asta
+USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
+OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
+OTPORT  .EQU    WRKSPC+7H           ; Port (p)
+DIVSUP  .EQU    WRKSPC+9H           ; Division support routine
+DIV1    .EQU    WRKSPC+0AH           ; <- Values
+DIV2    .EQU    WRKSPC+0EH           ; <-   to
+DIV3    .EQU    WRKSPC+12H           ; <-   be
+DIV4    .EQU    WRKSPC+15H           ; <-inserted
+SEED    .EQU    WRKSPC+17H           ; Random number seed
+LSTRND  .EQU    WRKSPC+3AH           ; Last random number
+INPSUB  .EQU    WRKSPC+3EH           ; #INP (x)" Routine
+INPORT  .EQU    WRKSPC+3FH           ; PORT (x)
+NULLS   .EQU    WRKSPC+41H           ; Number of nulls
+LWIDTH  .EQU    WRKSPC+42H           ; Terminal width
+COMMAN  .EQU    WRKSPC+43H           ; Width for commas
+NULFLG  .EQU    WRKSPC+44H           ; Null after input byte flag
+CTLOFG  .EQU    WRKSPC+45H           ; Control "O" flag
+LINESC  .EQU    WRKSPC+46H           ; Lines counter
+LINESN  .EQU    WRKSPC+48H           ; Lines number
+CHKSUM  .EQU    WRKSPC+4AH           ; Array load/save check sum
+NMIFLG  .EQU    WRKSPC+4CH           ; Flag for NMI break routine
+BRKFLG  .EQU    WRKSPC+4DH           ; Break flag
+RINPUT  .EQU    WRKSPC+4EH           ; Input reflection
+POINT   .EQU    WRKSPC+51H           ; "POINT" reflection (unused)
+PSET    .EQU    WRKSPC+54H           ; "SET"   reflection
+RESET   .EQU    WRKSPC+57H           ; "RESET" reflection
+STRSPC  .EQU    WRKSPC+5AH           ; Bottom of string space
+LINEAT  .EQU    WRKSPC+5CH           ; Current line number
+BASTXT  .EQU    WRKSPC+5EH           ; Pointer to start of program
+BUFFER  .EQU    WRKSPC+61H           ; Input buffer
+STACK   .EQU    WRKSPC+66H           ; Initial stack
+CURPOS  .EQU    WRKSPC+0ABH          ; Character position on line
+LCRFLG  .EQU    WRKSPC+0ACH          ; Locate/Create flag
+TYPE    .EQU    WRKSPC+0ADH          ; Data type flag
+DATFLG  .EQU    WRKSPC+0AEH          ; Literal statement flag
+LSTRAM  .EQU    WRKSPC+0AFH          ; Last available RAM
+TMSTPT  .EQU    WRKSPC+0B1H          ; Temporary string pointer
+TMSTPL  .EQU    WRKSPC+0B3H          ; Temporary string pool
+TMPSTR  .EQU    WRKSPC+0BFH          ; Temporary string
+STRBOT  .EQU    WRKSPC+0C3H          ; Bottom of string space
+CUROPR  .EQU    WRKSPC+0C5H          ; Current operator in EVAL
+LOOPST  .EQU    WRKSPC+0C7H          ; First statement of loop
+DATLIN  .EQU    WRKSPC+0C9H          ; Line of current DATA item
+FORFLG  .EQU    WRKSPC+0CBH          ; "FOR" loop flag
+LSTBIN  .EQU    WRKSPC+0CCH          ; Last byte entered
+READFG  .EQU    WRKSPC+0CDH          ; Read/Input flag
+BRKLIN  .EQU    WRKSPC+0CEH          ; Line of break
+NXTOPR  .EQU    WRKSPC+0D0H          ; Next operator in EVAL
+ERRLIN  .EQU    WRKSPC+0D2H          ; Line of error
+CONTAD  .EQU    WRKSPC+0D4H          ; Where to CONTinue
+PROGND  .EQU    WRKSPC+0D6H          ; End of program
+VAREND  .EQU    WRKSPC+0D8H          ; End of variables
+ARREND  .EQU    WRKSPC+0DAH          ; End of arrays
+NXTDAT  .EQU    WRKSPC+0DCH          ; Next data item
+FNRGNM  .EQU    WRKSPC+0DEH          ; Name of FN argument
+FNARG   .EQU    WRKSPC+0E0H          ; FN argument value
+FPREG   .EQU    WRKSPC+0E4H          ; Floating point register
+FPEXP   .EQU    FPREG+3         ; Floating point exponent
+SGNRES  .EQU    WRKSPC+0E8H     ; Sign of result
+PBUFF   .EQU    WRKSPC+0E9H     ; Number print buffer
+MULVAL  .EQU    WRKSPC+0F6H     ; Multiplier
+PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area
+STLOOK  .EQU    WRKSPC+15DH     ; Start of memory test
 
 ; BASIC ERROR CODE VALUES
 
@@ -82,6 +145,8 @@ UM      .EQU    2CH             ; Unknown VDP screen mode - Jan/2023 - Added by 
 
 .LIST                                                   ; Dec/2022 - Added by David Asta
 
+;         .ORG    00150H                                ; Dec/2022 - Added by David Asta
+
 COLD:   JP      STARTB          ; Jump for cold start
 WARM:   JP      WARMST          ; Jump for warm start
 STARTB: 
@@ -90,6 +155,7 @@ STARTB:
 
         .WORD   DEINT           ; Get integer -32768 to 32767
         .WORD   ABPASS          ; Return integer in AB
+
 
 CSTART: LD      HL,WRKSPC       ; Start of workspace RAM
         LD      SP,HL           ; Set up a temporary stack
@@ -109,42 +175,45 @@ COPY:   LD      A,(DE)          ; Get source
         CALL    PRNTCRLF        ; Output CRLF
         LD      (BUFFER+72+1),A ; Mark end of buffer
         LD      (PROGST),A      ; Initialise program area
-MSIZE:  LD      HL,MEMMSG       ; Point to message
-        CALL    PRS             ; Output "Memory size"
-        CALL    PROMPT          ; Get input with '?'
-        CALL    GETCHR          ; Get next character
-        OR      A               ; Set flags
-        JP      NZ,TSTMEM       ; If number - Test if RAM there
-        LD      HL,STLOOK       ; Point to start of RAM
-MLOOP:  INC     HL              ; Next byte
-        LD      A,H             ; Above address FFFF ?
-        OR      L
-        JP      Z,SETTOP        ; Yes - 64K RAM
-        LD      A,(HL)          ; Get contents
-        LD      B,A             ; Save it
-        CPL                     ; Flip all bits
-        LD      (HL),A          ; Put it back
-        CP      (HL)            ; RAM there if same
-        LD      (HL),B          ; Restore old contents
-        JP      Z,MLOOP         ; If RAM - test next byte
-        JP      SETTOP          ; Top of RAM found
+; Nov/2023 - Adapted by David Asta - Removed "Memory Top?" and just use always max. memory
+; MSIZE:  LD      HL,MEMMSG       ; Point to message
+;         CALL    PRS             ; Output "Memory size"
+;         CALL    PROMPT          ; Get input with '?'
+;         CALL    GETCHR          ; Get next character
+;         OR      A               ; Set flags
+;         JP      NZ,TSTMEM       ; If number - Test if RAM there
+          ld      HL, $FFFF
+;         LD      HL,STLOOK       ; Point to start of RAM
+; MLOOP:  INC     HL              ; Next byte
+;         LD      A,H             ; Above address FFFF ?
+;         OR      L
+;         JP      Z,SETTOP        ; Yes - 64K RAM
+;         LD      A,(HL)          ; Get contents
+;         LD      B,A             ; Save it
+;         CPL                     ; Flip all bits
+;         LD      (HL),A          ; Put it back
+;         CP      (HL)            ; RAM there if same
+;         LD      (HL),B          ; Restore old contents
+;         JP      Z,MLOOP         ; If RAM - test next byte
+;         JP      SETTOP          ; Top of RAM found
 
-TSTMEM: CALL    ATOH            ; Get high memory into DE
-        OR      A               ; Set flags on last byte
-        JP      NZ,SNERR        ; ?SN Error if bad character
-        EX      DE,HL           ; Address into HL
+; TSTMEM: CALL    ATOH            ; Get high memory into DE
+;         OR      A               ; Set flags on last byte
+;         JP      NZ,SNERR        ; ?SN Error if bad character
+;         EX      DE,HL           ; Address into HL
+;         DEC     HL              ; Back one byte
+;         LD      A,11011001B     ; Test byte
+;         LD      B,(HL)          ; Get old contents
+;         LD      (HL),A          ; Load test byte
+;         CP      (HL)            ; RAM there if same
+;         LD      (HL),B          ; Restore old contents
+;         JP      NZ,MSIZE        ; Ask again if no RAM
+
+SETTOP: 
         DEC     HL              ; Back one byte
-        LD      A,11011001B     ; Test byte
-        LD      B,(HL)          ; Get old contents
-        LD      (HL),A          ; Load test byte
-        CP      (HL)            ; RAM there if same
-        LD      (HL),B          ; Restore old contents
-        JP      NZ,MSIZE        ; Ask again if no RAM
-
-SETTOP: DEC     HL              ; Back one byte
         LD      DE,STLOOK-1     ; See if enough RAM
-        CALL    CPDEHL          ; Compare DE with HL
-        JP      C,MSIZE         ; Ask again if not enough RAM
+        ; CALL    CPDEHL          ; Compare DE with HL              ; Nov/2023 - Adapted by David Asta - Removed "Memory Top?" and just use always max. memory
+        ; JP      C,MSIZE         ; Ask again if not enough RAM     ; Nov/2023 - Adapted by David Asta - Removed "Memory Top?" and just use always max. memory
         LD      DE,0-50         ; 50 Bytes string space
         LD      (LSTRAM),HL     ; Save last available RAM
         ADD     HL,DE           ; Allocate string space
@@ -177,7 +246,7 @@ BFREE:  .BYTE   " Bytes free",CR,LF,0,0
 SIGNON: .BYTE   "Z80 BASIC Ver 4.7b",CR,LF
         .BYTE   "Copyright ",40,"C",41
         .BYTE   " 1978 by Microsoft",CR,LF
-        .BYTE   "Adapted to dastaZ80 by David Asta ",40,"C",41," 2022",CR,LF,0,0    ; Dec/2022 - Added by David Asta
+        .BYTE   "Adapted to dastaZ80 by David Asta ",40,"C",41," 2022-2023",CR,LF,0,0    ; Dec/2022 - Added by David
 
 MEMMSG: .BYTE   "Memory top",0
 
@@ -237,10 +306,10 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'D'+80H,"EF"
         .BYTE   'P'+80H,"OKE"
         .BYTE   'D'+80H,"OKE"
-        .BYTE   'S'+80H,"CREEN"         ; Jan/2023 - Added by David Asta
+        .BYTE   'S'+80H,"CREEN"
         .BYTE   'L'+80H,"INES"
         .BYTE   'C'+80H,"LS"
-        .BYTE   'W'+80H,"IDTH"
+        .BYTE   'C'+80H,"AT"            ; Nov/2023 - Adapted by David Asta - was WIDTH
         .BYTE   'M'+80H,"ONITOR"
         .BYTE   'S'+80H,"ET"
         .BYTE   'R'+80H,"ESET"
@@ -250,7 +319,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'C'+80H,"LEAR"
         .BYTE   'L'+80H,"OAD"           ; Dec/2022 - Adapted by David Asta - was CLOAD
         .BYTE   'S'+80H,"AVE"           ; Dec/2022 - Adapted by David Asta - was CSAVE
-        .BYTE   'S'+80H,"OUND"          ; Jan/2023 - Added by David Asta
+        .BYTE   'C'+80H,"OLOUR"         ; Dec/2023 - Added by David Asta
         .BYTE   'N'+80H,"EW"
 
         .BYTE   'T'+80H,"AB("
@@ -327,10 +396,10 @@ WORDTB: .WORD   PEND
         .WORD   DEF
         .WORD   POKE
         .WORD   DOKE
-        .WORD   REM
+        .WORD   SCREEN
         .WORD   LINES
         .WORD   CLS
-        .WORD   WIDTH
+        .WORD   CAT                     ; Nov/2023 - Adapted by David Asta - was WIDTH
         .WORD   MONITR
         .WORD   PSET
         .WORD   RESET
@@ -340,14 +409,10 @@ WORDTB: .WORD   PEND
         .WORD   CLEAR
         .WORD   LOAD                    ; Dec/2022 - Adapted by David Asta
         .WORD   SAVE                    ; Dec/2022 - Adapted by David Asta
-        .WORD   SOUND                   ; Jan/2023 - Added by David Asta
+        .WORD   COLOUR                  ; Dec/2023 - Added by David Asta
         .WORD   NEW
 
 ; RESERVED WORD TOKEN VALUES
-; When adding a command or a function to the FUNCTION ADDRESS TABLE or to
-;   the RESERVED WORD LIST, the values here must be incremented by 1 for the
-;   constants after the added command or function.
-; (e.g. SOUND was added after NEW, so values after NEW must be incremented by 1)
 
 ZEND    .EQU    080H            ; END
 ZFOR    .EQU    081H            ; FOR
@@ -369,14 +434,14 @@ ZSTEP   .EQU    0ACH            ; STEP
 ZPLUS   .EQU    0ADH            ; +
 ZMINUS  .EQU    0AEH            ; -
 ZTIMES  .EQU    0AFH            ; *
-ZDIV    .EQU    0B1H            ; /
+ZDIV    .EQU    0B0H            ; /
 ZOR     .EQU    0B3H            ; OR
 ZGTR    .EQU    0B4H            ; >
 ZEQUAL  .EQU    0B5H            ; M
 ZLTH    .EQU    0B6H            ; <
 ZSGN    .EQU    0B7H            ; SGN
 ZPOINT  .EQU    0C8H            ; POINT
-ZLEFT   .EQU    0CEH +2         ; LEFT$
+ZLEFT   .EQU    0D0H            ; LEFT$
 
 ; ARITHMETIC PRECEDENCE TABLE
 
@@ -425,6 +490,7 @@ ERRORS: .BYTE   "NF"            ; NEXT without FOR
         .BYTE   "HX"            ; HEX error
         .BYTE   "BN"            ; BIN error
         .BYTE   "LE"            ; LOAD File not found - Dec/2022 - Added by David Asta
+        .BYTE   "UM"            ; Unknown VDP screen mode - Jan/2023 - Added by David Asta
 
 ; INITIALISATION TABLE -------------------------------------------------------
 
@@ -887,7 +953,7 @@ TTYLIN: LD      HL,BUFFER       ; Get a line by character
         LD      (NULFLG),A      ; Clear null flag
 MORINP: CALL    CLOTST          ; Get character and test ^O
         LD      C,A             ; Save character in C
-        CP      DEL             ; Delete character?
+        CP      DELETE          ; Delete character?             Nov/2023 - Adapted by David Asta
         JP      Z,DODEL         ; Yes - Process it
         LD      A,(NULFLG)      ; Get null flag
         OR      A               ; Test null flag status
@@ -907,11 +973,11 @@ PROCES: LD      A,C             ; Get character
         JP      Z,ENDINP        ; Yes - Terminate input
         CP      CTRLU           ; Is it control "U"?
         JP      Z,KILIN         ; Yes - Get another line
-        CP      '@'             ; Is it "kill line"?
-        JP      Z,OTKLN         ; Yes - Kill line
-        CP      '_'             ; Is it delete?
-        JP      Z,DELCHR        ; Yes - Delete character
-        CP      BKSP            ; Is it backspace?
+        ; CP      '@'             ; Is it "kill line"?          Nov/2023 - Removed by David Asta
+        ; JP      Z,OTKLN         ; Yes - Kill line             Nov/2023 - Removed by David Asta
+        ; CP      '_'             ; Is it delete?               Nov/2023 - Removed by David Asta
+        ; JP      Z,DELCHR        ; Yes - Delete character      Nov/2023 - Removed by David Asta
+        CP      BSPACE            ; Is it backspace?            Nov/2023 - Adapted by David Asta
         JP      Z,DELCHR        ; Yes - Delete character
         CP      CTRLR           ; Is it control "R"?
         JP      NZ,PUTBUF       ; No - Put in buffer
@@ -942,7 +1008,7 @@ OUTIT:  CALL    OUTC            ; Output the character entered
         JP      MORINP          ; Get another character
 
 OUTNBS: CALL    OUTC            ; Output bell and back over it
-        LD      A,BKSP          ; Set back space
+        LD      A,BSPACE        ; Set back space                Nov/2023 - Adapted by David Asta
         JP      OUTIT           ; Output it and get more
 
 CPDEHL: LD      A,H             ; Get H
@@ -1210,8 +1276,7 @@ UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
         RET
 
 
-TSTBRK: 
-        RST     18H             ; Check input status
+TSTBRK: RST     18H             ; Check input status
         RET     Z               ; No key, go back
         RST     10H             ; Get the key into A
         CP      ESC             ; Escape key?
@@ -1883,8 +1948,8 @@ OPRND:  XOR     A               ; Get operand routine
         JP      C,ASCTFP        ; Number - Get value
         CALL    CHKLTR          ; See if a letter
         JP      NC,CONVAR       ; Letter - Find variable
-        CP		'&'				; &H = HEX, &B = BINARY
-        JR		NZ, NOTAMP
+        CP        '&'                ; &H = HEX, &B = BINARY
+        JR        NZ, NOTAMP
         CALL    GETCHR          ; Get next character
         CP      'H'             ; Hex number indicated? [function added]
         JP      Z,HEXTFP        ; Convert Hex to FPREG
@@ -2897,14 +2962,14 @@ VAL:    CALL    GETLEN          ; Get length of string
         EX      (SP),HL         ; Save string end,get start
         PUSH    BC              ; Save end+1 byte
         LD      A,(HL)          ; Get starting byte
-    CP	'$'		; Hex number indicated? [function added]
-    JP	NZ,VAL1
-    CALL	HEXTFP		; Convert Hex to FPREG
-    JR	VAL3
-VAL1:	CP	'%'		; Binary number indicated? [function added]
-    JP	NZ,VAL2
-    CALL	BINTFP		; Convert Bin to FPREG
-    JR	VAL3
+    CP    '$'        ; Hex number indicated? [function added]
+    JP    NZ,VAL1
+    CALL    HEXTFP        ; Convert Hex to FPREG
+    JR    VAL3
+VAL1:    CP    '%'        ; Binary number indicated? [function added]
+    JP    NZ,VAL2
+    CALL    BINTFP        ; Convert Bin to FPREG
+    JR    VAL3
 VAL2:   CALL    ASCTFP          ; Convert ASCII string to FP
 VAL3:   POP     BC              ; Restore end+1 byte
         POP     HL              ; Restore end+1 address
@@ -4060,17 +4125,18 @@ ATNTAB: .BYTE   9                       ; Table used by ATN
 
 ARET:   RET                     ; A RETurn instruction
 
-GETINP: RST	    10H             ;input a character
+GETINP: RST        10H             ;input a character
         RET
 
 CLS:    ; Dec/2022 - Adapted by David Asta
         call    F_KRN_SERIAL_CLRSCR
         ret
 
-WIDTH:  CALL    GETINT          ; Get integer 0-255
-        LD      A,E             ; Width to A
-        LD      (LWIDTH),A      ; Set width
-        RET
+; Nov/2023 - Removed by David Asta
+; WIDTH:  CALL    GETINT          ; Get integer 0-255
+;         LD      A,E             ; Width to A
+;         LD      (LWIDTH),A      ; Set width
+;         RET
 
 LINES:  CALL    GETNUM          ; Get a number
         CALL    DEINT           ; Get integer -32768 to 32767
@@ -4103,29 +4169,29 @@ DOKE:   CALL    GETNUM          ; Get a number
 
 ; HEX$(nn) Convert 16 bit number to Hexadecimal string
 
-HEX: 	CALL	TSTNUM          ; Verify it's a number
-        CALL	DEINT           ; Get integer -32768 to 32767
-        PUSH	BC              ; Save contents of BC
-        LD	    HL,PBUFF
-        LD	    A,D             ; Get high order into A
+HEX:     CALL    TSTNUM          ; Verify it's a number
+        CALL    DEINT           ; Get integer -32768 to 32767
+        PUSH    BC              ; Save contents of BC
+        LD        HL,PBUFF
+        LD        A,D             ; Get high order into A
         CP      $0
-		JR      Z,HEX2          ; Skip output if both high digits are zero
+        JR      Z,HEX2          ; Skip output if both high digits are zero
         CALL    BYT2ASC         ; Convert D to ASCII
-		LD      A,B
-		CP      '0'
-		JR      Z,HEX1          ; Don't store high digit if zero
-        LD	    (HL),B          ; Store it to PBUFF
-        INC	    HL              ; Next location
-HEX1:   LD	    (HL),C          ; Store C to PBUFF+1
+        LD      A,B
+        CP      '0'
+        JR      Z,HEX1          ; Don't store high digit if zero
+        LD        (HL),B          ; Store it to PBUFF
+        INC        HL              ; Next location
+HEX1:   LD        (HL),C          ; Store C to PBUFF+1
         INC     HL              ; Next location
-HEX2:   LD	    A,E             ; Get lower byte
+HEX2:   LD        A,E             ; Get lower byte
         CALL    BYT2ASC         ; Convert E to ASCII
-		LD      A,D
+        LD      A,D
         CP      $0
-		JR      NZ,HEX3         ; If upper byte was not zero then always print lower byte
-		LD      A,B
-		CP      '0'             ; If high digit of lower byte is zero then don't print
-		JR      Z,HEX4
+        JR      NZ,HEX3         ; If upper byte was not zero then always print lower byte
+        LD      A,B
+        CP      '0'             ; If high digit of lower byte is zero then don't print
+        JR      Z,HEX4
 HEX3:   LD      (HL),B          ; to PBUFF+2
         INC     HL              ; Next location
 HEX4:   LD      (HL),C          ; to PBUFF+3
@@ -4138,12 +4204,12 @@ HEX4:   LD      (HL),C          ; to PBUFF+3
         LD      HL,PBUFF        ; Reset to start of PBUFF
         JP      STR1            ; Convert the PBUFF to a string and return it
 
-BYT2ASC	LD      B,A             ; Save original value
+BYT2ASC    LD      B,A             ; Save original value
         AND     $0F             ; Strip off upper nybble
         CP      $0A             ; 0-9?
         JR      C,ADD30         ; If A-F, add 7 more
         ADD     A,$07           ; Bring value up to ASCII A-F
-ADD30	ADD     A,$30           ; And make ASCII
+ADD30    ADD     A,$30           ; And make ASCII
         LD      C,A             ; Save converted char to C
         LD      A,B             ; Retrieve original value
         RRCA                    ; and Rotate it right
@@ -4154,9 +4220,9 @@ ADD30	ADD     A,$30           ; And make ASCII
         CP      $0A             ; 0-9? < A hex?
         JR      C,ADD301        ; Skip Add 7
         ADD     A,$07           ; Bring it up to ASCII A-F
-ADD301	ADD     A,$30           ; And make it full ASCII
+ADD301    ADD     A,$30           ; And make it full ASCII
         LD      B,A             ; Store high order byte
-        RET	
+        RET    
 
 ; Convert "&Hnnnn" to FPREG
 ; Gets a character from (HL) checks for Hexadecimal ASCII numbers "&Hnnnn"
@@ -4279,6 +4345,7 @@ MONOUT:
 
 
 MONITR:     ; Dec/2022 - Adapted by David Asta,
+        call    RESET_ANSI_COLOURS      ; Restore default colours before returning to CLI
 ;==============================================================================
 ; RETURN TO DZOS CLI
 ;==============================================================================
@@ -4286,6 +4353,7 @@ MONITR:     ; Dec/2022 - Adapted by David Asta,
 ; This ensure that any changes in the Operating System won't affect your program
         ld      HL, (CLI_prompt_addr)
         jp      (HL)                    ; return control to CLI
+
 
 INITST: LD      A,0             ; Clear break flag
         LD      (BRKFLG),A
@@ -4304,8 +4372,9 @@ TSTBIT: PUSH    AF              ; Save bit mask
 OUTNCR: CALL    OUTC            ; Output character in A
         JP      PRNTCRLF        ; Output CRLF
 
-
 LOAD:   ; Dec/2022 - Added by David Asta
+; Load file from disk
+; Usage: LOAD"<filename>
         call    EVAL
         call    GSTRCU                  ; Current string to pool
         call    LOADFP                  ; Move string block to BCDE
@@ -4328,6 +4397,7 @@ LOAD:   ; Dec/2022 - Added by David Asta
         ld      (DISK_loadsave_addr), HL
         call    F_KRN_DZFS_LOAD_FILE_TO_RAM
 
+        call    RESET_ANSI_COLOURS
         call    PRNTOK
         ret
 
@@ -4336,6 +4406,17 @@ load_notfound:
         jp      ERROR
 
 SAVE:   ; Dec/2022 - Added by David Asta
+; Save program (tokenised) to disk
+; Usage: SAVE"<filename>
+; Saves all bytes from PROGND address to address contained in PROGND
+        ld      IX, CLI_buffer_pgm      ; filename will be copied to dzOS SYSVARS
+        ; Clear temporary location
+        ld      B, 14                   ; filenames are 14 bytes long
+        xor     A                       ; it will be filled with zeros
+_clean_flname:
+        ld      (IX), A
+        inc     IX
+        djnz    _clean_flname
         ; copy filename to a temporary location (CLI_buffer_pgm)
         ; and add a string terminator ($0) at the end of the filename
         call    EVAL
@@ -4378,43 +4459,30 @@ _add_termntr:
         ld      IX, CLI_buffer_pgm
         call    F_KRN_DZFS_CREATE_NEW_FILE
 
+        call    RESET_ANSI_COLOURS
         call    PRNTOK
-        ret
-
-SOUND:   ; Jan/2023 - Added by David Asta
-; Writes a value in a specific PSG register.
-; SOUND <PSGregister>,<Value> 
-        call    GETINT                  ; get PSGregister
-        push    AF                      ; backup PSGregister
-        call    CHKSYN                  ; check that comma follows PSGregister
-        .BYTE   ','
-        call    GETINT                  ; get Value
-        ; Parameters for F_BIOS_PSG_SET_REGISTER
-        ;   A = register number
-        ;   E = value to set
-        ld      E, A
-        pop     AF                      ; restore PSGregister
-        call    F_BIOS_PSG_SET_REGISTER
         ret
 
 SCREEN:   ; Jan/2023 - Added by David Asta
 ; Changes the VDP screen mode
-;   0=Text Mode
-;   1=Graphics I Mode
-;   2=Graphics II Mode
-;   3=Multicolour Mode
-;   4=Graphics II Mode Bitmapped
+; Usage: SCREEN <n>
+;   where n is one of:
+;                       0=Text Mode
+;                       1=Graphics I Mode
+;                       2=Graphics II Mode
+;                       3=Multicolour Mode
+;                       4=Graphics II Mode Bitmapped
         call    GETINT                  ; get screen mode number
         cp      0
-        jp      z, _set_mode0
+        jr      z, _set_mode0
         cp      1
-        jp      z, _set_mode1
+        jr      z, _set_mode1
         cp      2
-        jp      z, _set_mode2
+        jr      z, _set_mode2
         cp      3
-        jp      z, _set_mode3
+        jr      z, _set_mode3
         cp      4
-        jp      z, _set_mode4
+        jr      z, _set_mode4
 
         ; none of the above, mode unknown
         ld      E, UM                   ; Unknown VDP screen mode
@@ -4436,73 +4504,174 @@ _set_mode4:
         call    F_BIOS_VDP_SET_MODE_G2BM
         ret
 
+CAT:    ; Nov/2023 - Added by David Asta
+; List BASIC files in the current disk
+        ; filenames will be shown in yellow colour
+        ld      DE, ANSI_FNT_MESSAGE
+        ld      B, 5
+        call    F_KRN_SERIAL_SEND_ANSI_CODE
+        ; BAT starts at sector 1
+        ld      A, 1
+        ld      (DISK_cur_sector), A
+        xor     A
+        ld      (DISK_cur_sector + 1), A
+_diskcat_nextsector:
+        ld      HL, (DISK_cur_sector)
+        ld      BC, 0
+        call    F_KRN_DZFS_SEC_TO_BUFFER
+        ; As we read in groups of 512 bytes (Sector),
+        ; each read will put 16 entries in the buffer.
+        ; We need to read a maxmimum of 1024 entries (i.e BAT max entries),
+        ; therefore 64 sectors.
+        xor     A                       ; entry counter
+_diskcat_print:
+        push    AF
+        call    F_KRN_DZFS_BATENTRY_TO_BUFFER
+        ld      A, (DISK_cur_file_name)
+        cp      $00                     ; Available BAT entry? (i.e. no file)
+        jp      z, _diskcat_end         ; Yes, no more entries
+        cp      $7E                     ; No, is file deleted?
+        jp      z, _diskcat_nextentry   ; Yes, skip it
+        ; Check if it's a BASIC program (File Type = 0x03 in bits 4-7)
+        ld      A, (DISK_cur_file_attribs)
+        and     $30                     ; File Type = 0x03 (BASIC) in bits 4-7
+        cp      $30                     ; If it's not a BASIC program
+        jp      nz, _diskcat_nextentry  ;   skip it
+        ; Print filename
+        ld      B, 14
+        ld      HL, DISK_cur_file_name
+        call    F_KRN_SERIAL_PRN_BYTES
+        ; Add CR + LF
+        ld      B, 1
+        call    F_KRN_SERIAL_EMPTYLINES
+_diskcat_nextentry:
+        pop     AF
+        inc     A                       ; next entry
+        cp      16                      ; did we process the 16 entries?
+        jp      nz, _diskcat_print      ; No, process next entry
+        ; More entries in other sectors?
+        ld      A, (DISK_cur_sector)
+        inc     A                       ; increment sector counter
+        ld      (DISK_cur_sector), A    ; Did we process
+        cp      DZFS_SECTORS_PER_BLOCK  ;    64 sectors already?
+        ; Then needs to be stored in SYSVARS
+        jp      nz, _diskcat_nextsector ; No, then process next sector
+        .BYTE   $3E                     ; Skip "pop AF"
+_diskcat_end:
+        pop     AF                      ; needed because previous push AF
+        call    RESET_ANSI_COLOURS
+        call    PRNTOK
+        ret
 
-;==================================================================================
-; BASIC WORK SPACE LOCATIONS
-;==================================================================================
-WRKSPC  .EQU    $                   ; BASIC Work space  ; Dec/2022 - Adapted by David Asta
-USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
-OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
-OTPORT  .EQU    WRKSPC+7H           ; Port (p)
-DIVSUP  .EQU    WRKSPC+9H           ; Division support routine
-DIV1    .EQU    WRKSPC+0AH           ; <- Values
-DIV2    .EQU    WRKSPC+0EH           ; <-   to
-DIV3    .EQU    WRKSPC+12H           ; <-   be
-DIV4    .EQU    WRKSPC+15H           ; <-inserted
-SEED    .EQU    WRKSPC+17H           ; Random number seed
-LSTRND  .EQU    WRKSPC+3AH           ; Last random number
-INPSUB  .EQU    WRKSPC+3EH           ; #INP (x)" Routine
-INPORT  .EQU    WRKSPC+3FH           ; PORT (x)
-NULLS   .EQU    WRKSPC+41H           ; Number of nulls
-LWIDTH  .EQU    WRKSPC+42H           ; Terminal width
-COMMAN  .EQU    WRKSPC+43H           ; Width for commas
-NULFLG  .EQU    WRKSPC+44H           ; Null after input byte flag
-CTLOFG  .EQU    WRKSPC+45H           ; Control "O" flag
-LINESC  .EQU    WRKSPC+46H           ; Lines counter
-LINESN  .EQU    WRKSPC+48H           ; Lines number
-CHKSUM  .EQU    WRKSPC+4AH           ; Array load/save check sum
-NMIFLG  .EQU    WRKSPC+4CH           ; Flag for NMI break routine
-BRKFLG  .EQU    WRKSPC+4DH           ; Break flag
-RINPUT  .EQU    WRKSPC+4EH           ; Input reflection
-POINT   .EQU    WRKSPC+51H           ; "POINT" reflection (unused)
-PSET    .EQU    WRKSPC+54H           ; "SET"   reflection
-RESET   .EQU    WRKSPC+57H           ; "RESET" reflection
-STRSPC  .EQU    WRKSPC+5AH           ; Bottom of string space
-LINEAT  .EQU    WRKSPC+5CH           ; Current line number
-BASTXT  .EQU    WRKSPC+5EH           ; Pointer to start of program
-BUFFER  .EQU    WRKSPC+61H           ; Input buffer
-STACK   .EQU    WRKSPC+66H           ; Initial stack
-CURPOS  .EQU    WRKSPC+0ABH          ; Character position on line
-LCRFLG  .EQU    WRKSPC+0ACH          ; Locate/Create flag
-TYPE    .EQU    WRKSPC+0ADH          ; Data type flag
-DATFLG  .EQU    WRKSPC+0AEH          ; Literal statement flag
-LSTRAM  .EQU    WRKSPC+0AFH          ; Last available RAM
-TMSTPT  .EQU    WRKSPC+0B1H          ; Temporary string pointer
-TMSTPL  .EQU    WRKSPC+0B3H          ; Temporary string pool
-TMPSTR  .EQU    WRKSPC+0BFH          ; Temporary string
-STRBOT  .EQU    WRKSPC+0C3H          ; Bottom of string space
-CUROPR  .EQU    WRKSPC+0C5H          ; Current operator in EVAL
-LOOPST  .EQU    WRKSPC+0C7H          ; First statement of loop
-DATLIN  .EQU    WRKSPC+0C9H          ; Line of current DATA item
-FORFLG  .EQU    WRKSPC+0CBH          ; "FOR" loop flag
-LSTBIN  .EQU    WRKSPC+0CCH          ; Last byte entered
-READFG  .EQU    WRKSPC+0CDH          ; Read/Input flag
-BRKLIN  .EQU    WRKSPC+0CEH          ; Line of break
-NXTOPR  .EQU    WRKSPC+0D0H          ; Next operator in EVAL
-ERRLIN  .EQU    WRKSPC+0D2H          ; Line of error
-CONTAD  .EQU    WRKSPC+0D4H          ; Where to CONTinue
-PROGND  .EQU    WRKSPC+0D6H          ; End of program
-VAREND  .EQU    WRKSPC+0D8H          ; End of variables
-ARREND  .EQU    WRKSPC+0DAH          ; End of arrays
-NXTDAT  .EQU    WRKSPC+0DCH          ; Next data item
-FNRGNM  .EQU    WRKSPC+0DEH          ; Name of FN argument
-FNARG   .EQU    WRKSPC+0E0H          ; FN argument value
-FPREG   .EQU    WRKSPC+0E4H          ; Floating point register
-FPEXP   .EQU    FPREG+3         ; Floating point exponent
-SGNRES  .EQU    WRKSPC+0E8H     ; Sign of result
-PBUFF   .EQU    WRKSPC+0E9H     ; Number print buffer
-MULVAL  .EQU    WRKSPC+0F6H     ; Multiplier
-PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area
-STLOOK  .EQU    WRKSPC+15DH     ; Start of memory test
+COLOUR:     ; Dec/2023 - Added by David Asta
+;Usage: COLOUR <foreground>,<background>
+; <foreground> = number from 0 to 15
+; <background> = number from 0 to 15
+;                   0 = Black           8 = Bright Black (Grey)
+;                   1 = Red             9 = Bright Red
+;                   2 = Green          10 = Bright Green
+;                   3 = Yellow         11 = Bright Yellow
+;                   4 = Blue           12 = Bright Blue
+;                   5 = Magenta        13 = Bright Magenta
+;                   6 = Cyan           14 = Bright Cyan
+;                   7 = White          15 = Bright White
+
+        call    GETINT                  ; Get integer 0-255, for foregorund
+        cp      16                      ; is it a valid colour number (0-15)?
+        jp      nc, SNERR               ; no, syntax error
+        ld      (tmp_byte), A           ; backup foreground colour in DZOS SYSVARS
+        call    CHKSYN                  ; Make sure ',' follows
+        .BYTE      ','
+        CALL    GETINT                  ; Get integer 0-255, for background
+        cp      16                      ; is it a valid colour number (0-15)?
+        jp      nc, SNERR               ; no, syntax error
+        ld      (tmp_byte2), A          ; backup background colour in DZOS SYSVARS
+
+        ; Prepare ANSI code for foreground colour
+        ; Is it a normal or a bright colour?
+        ld      A, (tmp_byte)
+        cp      8
+        jr      nc, _fgrnd_bright
+_fgrnd_normal:  ; Foreground colour is normal, add 30 to it (30-37)
+        add     A, 30
+        jr      _backup_fgrnd
+_fgrnd_bright:  ; Foregorund colour is bright, add 82 to it (90-97)
+        add     A, 82
+_backup_fgrnd:
+        ld      (tmp_byte), A           ; backup foreground colour in DZOS SYSVARS
+
+        ; Prepare ANSI code for background colour
+        ; Is it a normal or a bright colour?
+        ld      A, (tmp_byte2)
+        cp      8
+        jr      nc, _bgrnd_bright
+_bgrnd_normal:  ; Background colour is normal, add 40 to it (40-47)
+        add     A, 40
+        jr      _backup_bgrnd
+_bgrnd_bright:  ; Background colour is normal, add 92 to it (100-107)
+        add     A, 92
+_backup_bgrnd:
+        ld      (tmp_byte2), A          ; backup background colour in DZOS SYSVARS
+
+        ; Compose ANSI escape sequence (ESC[nn;nnnm)
+        ld      IX, ANSI_FNT_TEMP       ; temporary space where to store the sequence
+        ld      A, (tmp_byte)           ; foreground colour
+        call    F_KRN_BIN_TO_BCD4       ; convert A to 4-digit BCD
+        ld      C, 0                    ; clear 1st two digits of BCD before F_KRN_BCD_TO_ASCII
+        ld      DE, tmp_addr1           ; temporary space where to store the BCD2ASCII conversion
+        call    F_KRN_BCD_TO_ASCII      ; convert CHL into DE address
+        ld      IY, tmp_addr1
+        ld      A, (IY + 4)
+        ld      (IX + 2), A
+        ld      A, (IY + 5)
+        ld      (IX + 3), A
+
+        ld      A, (tmp_byte2)          ; background colour
+        call    F_KRN_BIN_TO_BCD4       ; convert A to 4-digit BCD
+        ld      C, 0                    ; clear 1st two digits of BCD before F_KRN_BCD_TO_ASCII
+        ld      DE, tmp_addr1           ; temporary space where to store the BCD2ASCII conversion
+        call    F_KRN_BCD_TO_ASCII      ; convert CHL into DE address
+        ld      IY, tmp_addr1
+        ; was background colour 2 (40-47) or 3 (100-107) digits?
+        ld      A, (tmp_byte2)          ; background colour
+        cp      100
+        jr      nc, _bgrnd_3digits
+_bgrnd_2digits:
+        ld      A, (IY + 4)
+        ld      (IX + 5), A
+        ld      A, (IY + 5)
+        ld      (IX + 6), A
+        ld      A, 'm'
+        ld      (IX + 7), A
+        ld      B, 8                    ; ANSI Escape sequence is 8 bytes
+        jr      _change_colours
+        ret
+_bgrnd_3digits:
+        ld      IY, tmp_addr1
+        ld      A, (IY + 3)
+        ld      (IX + 5), A
+        ld      A, (IY + 4)
+        ld      (IX + 6), A
+        ld      A, (IY + 5)
+        ld      (IX + 7), A
+        ld      A, 'm'
+        ld      (IX + 8), A
+        ld      B, 9                    ; ANSI Escape sequence is 9 bytes
+_change_colours:
+        ld      DE, ANSI_FNT_TEMP
+        call    F_KRN_SERIAL_SEND_ANSI_CODE
+        ret
+
+RESET_ANSI_COLOURS:  ; Nov/2023 - Added by David Asta
+; Messages printed by the Kernel (e.g. after load/save) change the text colour.
+; This subroutine resets the text colour to default (white over black) by using
+; ANSI escape code ESC[0m
+        ld      DE, ANSI_FNT_NORMAL
+        ld      B, 4
+        call    F_KRN_SERIAL_SEND_ANSI_CODE
+        ret
+ANSI_FNT_NORMAL:    .BYTE   $1B, "[0m"
+ANSI_FNT_MESSAGE:   .BYTE   $1B, "[33m"
+ANSI_FNT_TEMP:      .BYTE   $1B, "[nn;nnnm"     ; This is used by COLOUR
 
 .end
