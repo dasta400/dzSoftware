@@ -28,7 +28,7 @@
 ;   Jan/2023 - Set RESET reflection to F_BIOS_WBOOT
 ;   Nov/2023 - Removed "Memory Top?" and just use always max. memory
 ;            - Changed WIDTH (I have not use for it) for CAT (shows BASIC files in disk)
-;   Dec/2023 - Added COLOUR
+;   Dec/2023 - Added COLOUR and SPOKE
 
 .NOLIST                                                 ; Jul/2022 - Added by David Asta
 #include "src/_header.inc"                              ; Jul/2022 - Added by David Asta
@@ -320,6 +320,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'L'+80H,"OAD"           ; Dec/2022 - Adapted by David Asta - was CLOAD
         .BYTE   'S'+80H,"AVE"           ; Dec/2022 - Adapted by David Asta - was CSAVE
         .BYTE   'C'+80H,"OLOUR"         ; Dec/2023 - Added by David Asta
+        .BYTE   'S'+80H,"POKE"          ; Dec/2023 - Added by David Asta
         .BYTE   'N'+80H,"EW"
 
         .BYTE   'T'+80H,"AB("
@@ -410,6 +411,7 @@ WORDTB: .WORD   PEND
         .WORD   LOAD                    ; Dec/2022 - Adapted by David Asta
         .WORD   SAVE                    ; Dec/2022 - Adapted by David Asta
         .WORD   COLOUR                  ; Dec/2023 - Added by David Asta
+        .WORD   SPOKE                   ; Dec/2023 - Added by David Asta
         .WORD   NEW
 
 ; RESERVED WORD TOKEN VALUES
@@ -421,27 +423,27 @@ ZGOTO   .EQU    088H            ; GOTO
 ZGOSUB  .EQU    08CH            ; GOSUB
 ZREM    .EQU    08EH            ; REM
 ZPRINT  .EQU    09EH            ; PRINT
-ZNEW    .EQU    0A5H            ; NEW
+ZNEW    .EQU    0A6H            ; NEW
 
-ZTAB    .EQU    0A6H            ; TAB
-ZTO     .EQU    0A7H            ; TO
-ZFN     .EQU    0A8H            ; FN
-ZSPC    .EQU    0A9H            ; SPC
-ZTHEN   .EQU    0AAH            ; THEN
-ZNOT    .EQU    0ABH            ; NOT
-ZSTEP   .EQU    0ACH            ; STEP
+ZTAB    .EQU    0A7H            ; TAB
+ZTO     .EQU    0A8H            ; TO
+ZFN     .EQU    0A9H            ; FN
+ZSPC    .EQU    0AAH            ; SPC
+ZTHEN   .EQU    0ABH            ; THEN
+ZNOT    .EQU    0ACH            ; NOT
+ZSTEP   .EQU    0ADH            ; STEP
 
-ZPLUS   .EQU    0ADH            ; +
-ZMINUS  .EQU    0AEH            ; -
-ZTIMES  .EQU    0AFH            ; *
-ZDIV    .EQU    0B0H            ; /
-ZOR     .EQU    0B3H            ; OR
-ZGTR    .EQU    0B4H            ; >
-ZEQUAL  .EQU    0B5H            ; M
-ZLTH    .EQU    0B6H            ; <
-ZSGN    .EQU    0B7H            ; SGN
-ZPOINT  .EQU    0C8H            ; POINT
-ZLEFT   .EQU    0D0H            ; LEFT$
+ZPLUS   .EQU    0AEH            ; +
+ZMINUS  .EQU    0AFH            ; -
+ZTIMES  .EQU    0B0H            ; *
+ZDIV    .EQU    0B1H            ; /
+ZOR     .EQU    0B4H            ; OR
+ZGTR    .EQU    0B5H            ; >
+ZEQUAL  .EQU    0B6H            ; M
+ZLTH    .EQU    0B7H            ; <
+ZSGN    .EQU    0B8H            ; SGN
+ZPOINT  .EQU    0C9H            ; POINT
+ZLEFT   .EQU    0D1H            ; LEFT$
 
 ; ARITHMETIC PRECEDENCE TABLE
 
@@ -4673,5 +4675,21 @@ RESET_ANSI_COLOURS:  ; Nov/2023 - Added by David Asta
 ANSI_FNT_NORMAL:    .BYTE   $1B, "[0m"
 ANSI_FNT_MESSAGE:   .BYTE   $1B, "[33m"
 ANSI_FNT_TEMP:      .BYTE   $1B, "[nn;nnnm"     ; This is used by COLOUR
+
+SPOKE:  ; Dec/2023 - Added by David Asta
+; Writes a value in a specific PSG register.
+; SPOKE <PSGregister>,<Value> 
+        call    GETINT                  ; get PSGregister
+        push    AF                      ; backup PSGregister
+        call    CHKSYN                  ; check that comma follows PSGregister
+        .BYTE   ','
+        call    GETINT                  ; get Value
+        ; Parameters for F_BIOS_PSG_SET_REGISTER
+        ;   A = register number
+        ;   E = value to set
+        ld      E, A
+        pop     AF                      ; restore PSGregister
+        call    F_BIOS_PSG_SET_REGISTER
+        ret
 
 .end
