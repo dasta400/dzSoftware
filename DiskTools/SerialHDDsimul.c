@@ -24,9 +24,10 @@
 #include <sys/ioctl.h>	// ioctl()
 
 /* ---- DEFINES ---- */
-#define DEBUG               true    /**< Print extra information if DEBUG=true */
+#define DEBUG               false   /**< Print extra information if DEBUG=true */
 #define SERIAL_BUFFER       520     /**< Size of the receiving buffer */
 #define SECTOR_SIZE         512     /**< Size of sector in DZFS */
+#define FDD_CMD_GET_STATUS  0xA0    /**< FDD Command Get Status */
 #define SD_CMD_GET_STATUS   0xB0    /**< SD Command Get Status */
 #define SD_CMD_BUSY         0xB1    /**< SD Command Busy */
 #define SD_CMD_READ_SEC     0xB2    /**< SD Command Read Sector (512 bytes) */
@@ -239,6 +240,25 @@ int open_disk_images(const char *folder){
     fclose(fcfg);
     free(fullpath);
     return result;
+}
+
+/**
+ * Sends a byte (through the serial) that tells the status of the FDD (not connected)
+ *      Low Nibble (0x00 if all OK)
+ *          bit 0 = set if FDD was not detected
+ *          bit 1 = 0
+ *          bit 2 = 0
+ *          bit 3 = 0
+ *      High Nibble (Not used. All zeros)
+ */
+void fdd_cmd_status(void){
+    u8 status[1] = {0x01};
+
+    write(serial_port, status, 1);
+
+    if(DEBUG){
+        printf("<< Sent 0x%02x\n", status[0]);
+    }
 }
 
 /**
@@ -465,11 +485,19 @@ int listen_serial(void){
         if(rcvd_bytes > 0){
             while(rcvd_pos < SERIAL_BUFFER){
                 cmd_byte = rcvd_buffer[rcvd_pos];
-                if(cmd_byte >= MIN_CMD && cmd_byte <= MAX_CMD)
+                if(cmd_byte >= MIN_CMD && cmd_byte <= MAX_CMD){
                     printf("Received 0x%02x: %s\n", cmd_byte, cmds_descrip[cmd_byte - MIN_CMD]);
+                }else{
+                    if(cmd_byte == FDD_CMD_GET_STATUS)
+                        printf("Received 0x%02x: %s\n", cmd_byte, "FDD_CMD_GET_STATUS");
                     else printf("Received 0x%02x: UNKNOWN\n", cmd_byte);
+                }
 
                 switch(cmd_byte){
+                case FDD_CMD_GET_STATUS:
+                    fdd_cmd_status();
+                    rcvd_pos++;
+                    break;
                 case SD_CMD_GET_STATUS:
                     sd_cmd_status();
                     rcvd_pos++;
