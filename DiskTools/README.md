@@ -23,7 +23,7 @@ FTDI-to-USB cable can be connected. In fact, only the pins _TX_ and _RX_ are
 internally connected, so any serial TTL signal can be connected here.
 
 The SerialHDDsimul program runs on a PC and simulates the behaviour of the SD
-card attached to the [Arduino Serial Multi-Device Controller (AMDC)](https://github.com/dasta400/asmdc).
+card attached to the [Arduino Serial Multi-Device Controller (ASMDC)](https://github.com/dasta400/asmdc).
 
 It's great for testing new software during development, as you don't need to
 copy the binary to an SD card and extract/insert the SD card all the time in

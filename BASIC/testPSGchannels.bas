@@ -10,6 +10,7 @@
 70 IF W$="B" THEN 200
 80 IF W$="C" THEN 300
 90 IF W$="0" THEN 20
+95 GOTO 50:REM None of the above
 100 REM Play note C in channel A
 110 SPOKE 0,172:REM Fine Tune Ch A
 120 SPOKE 1,1:REM Coarse Tune Ch A

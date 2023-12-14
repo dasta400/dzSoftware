@@ -1,6 +1,6 @@
-1 REM Draws a full colour Mandelbrot set 
-2 REM on the High Res. (VGA) Screen, in 
-3 REM in 26 lines. It takes 4 minutes and 21 seconds.
+1 REM Draws a full colour Mandelbrot set, in 26 lines,
+2 REM to the High Resolution Screen (VGA).
+3 REM It takes 4 minutes and 21 seconds.
 5 CLS
 10 IT=20
 15 PRINT CHR$(27);"[7m";
@@ -21,5 +21,5 @@
 210 IF INK>9 THEN INK$=STR$(INK+20)
 220 IF INK<10 THEN INK$=STR$(INK+30)
 230 PRINT CHR$(27);"[";RIGHT$(INK$,LEN(INK$)-1);"m";
-240 PRINT "*";
+240 PRINT " ";
 250 RETURN

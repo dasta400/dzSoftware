@@ -1,4 +1,4 @@
-1 REM David Ahl's More BASIC Computer Games
+1 REM David H. Ahl's More BASIC Computer Games
 2 REM with some modifications by David Asta
 5 CLS
 10 PRINT TAB(22);"FOUR IN A ROW"

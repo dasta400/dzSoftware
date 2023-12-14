@@ -349,7 +349,7 @@ void sd_cmd_read_sector(u8 *rcvd_buffer){
 /**
  * Write a sector (512 bytes) to the disk image
  * \return The position of the last byte used from the buffer rcvd_buffer.
- *  last byte used = 515 = 1 (AMDC command) + 2 (sector number) + 512 (data)
+ *  last byte used = 515 = 1 (ASMDC command) + 2 (sector number) + 512 (data)
  */
 int sd_cmd_write_sector(u8 *rcvd_buffer){
     u8 img_num      = rcvd_buffer[1];
