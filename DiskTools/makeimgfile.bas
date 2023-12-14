@@ -5,14 +5,16 @@
  * for dastaZ80
  * by David Asta (Jan 2023)
  * 
- * Version 1.2.0
+ * Version 1.3.0
  * Created on 2 Jan 2023
- * Last Modification 25 Jan 2023
+ * Last Modification 14 Dec 2023
  *******************************************************************************
  * CHANGELOG
  *   -  8 Jan 2023 - Load Address and Attributes assigned as per file extension.
  *   - 11 Jan 2023 - Calculates the max. number of files depending on image size.
  *   - 25 Jan 2023 - Skip lines starting with # in filelist
+ *   - 14 Dec 2023 - If file has attribute Executable, get load address from
+ *                      bytes in file. Otherwise, get load address as per extension
  *******************************************************************************
  *'/
 
@@ -223,6 +225,7 @@ Sub CreateBAT
     Dim As String       filetimeStr
     Dim As UByte        trail
     Dim As bat_entry    bat
+    Dim As UShort       ld_addr
 
     f = FreeFile()
 
@@ -270,7 +273,20 @@ Sub CreateBAT
             bat.file_size_sectors = CalcFileSizeSectors(bat.file_size_bytes)
             bat.entry_number = bat_entry_number
             bat.first_sector = CalcFirstSector(bat_entry_number)
-            bat.load_address = GetLoadAddrAsPerExtension(Right(files(i), 3))
+            ' Added 14 Dec 2023 - If file has attribute Executable,
+            '                       get load address from bytes in file.
+            '                       Otherwise, get load address as default
+            '                       per extension
+            If Bit(bat.attributes, 3) = -1 Then
+                If Get(#f, 4, ld_addr) = 0 Then
+                    bat.load_address = SwapEndianShort(ld_addr)
+                Else
+                    Print "Failed to read Load Address from " & filelist(i)
+                    End
+                EndIf
+            Else
+                bat.load_address = GetLoadAddrAsPerExtension(Right(files(i), 3))
+            Endif
 
             SaveBATdata(bat)
             Close #f
