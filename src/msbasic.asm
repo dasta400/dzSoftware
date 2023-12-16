@@ -23,12 +23,16 @@
 ;   Jul/2022 - WRKSPC changed to .EQU START_HIGHRAM
 ;            - The main .ORG address is START_HIGHRAM ($4420) instead of 00150H
 ;   Nov/2022 - MONITR jumps to dzOS' CLI instead of $0000
-;   Dec/2022 - Added LOAD and SAVE
+;   Dec/2022 - Added CLOAD and CSAVE functionalities (was removed by Grant Searle) as LOAD and SAVE
 ;            - Added LE error for LOAD
 ;   Jan/2023 - Set RESET reflection to F_BIOS_WBOOT
+;            - Added SCREEN functionality (was removed by Grant Searle)
+;            - Added UM error for SCREEN
+;   Jul/2023 - Added VPOKE and VPEEK
 ;   Nov/2023 - Removed "Memory Top?" and just use always max. memory
 ;            - Changed WIDTH (I have not use for it) for CAT (shows BASIC files in disk)
-;   Dec/2023 - Added COLOUR and SPOKE
+;   Dec/2023 - Added CLS at the start, so that BASIC starts with a clear screen
+;            - Added COLOUR and SPOKE
 
 .NOLIST                                                 ; Jul/2022 - Added by David Asta
 #include "src/_header.inc"                              ; Jul/2022 - Added by David Asta
@@ -43,7 +47,7 @@ CTRLG   .EQU    07H             ; Control "G"
 ; CS      .EQU    0CH             ; Clear screen        ; Nov/2023 - Removed by David Asta
 ; CR      .EQU    0DH             ; Carriage return     ; Jul/2022 - Removed by David Asta
 CTRLO   .EQU    0FH             ; Control "O"
-CTRLQ    .EQU    11H                ; Control "Q"
+CTRLQ    .EQU    11H            ; Control "Q"
 CTRLR   .EQU    12H             ; Control "R"
 CTRLS   .EQU    13H             ; Control "S"
 CTRLU   .EQU    15H             ; Control "U"
@@ -229,6 +233,7 @@ SETTOP:
         LD      A,H             ; Get MSB
         SBC     A,D             ; Adjust it
         LD      H,A             ; Re-save
+        call    F_KRN_SERIAL_CLRSCR                                 ; Dec/2023 - Added by David Asta
         PUSH    HL              ; Save bytes free
         LD      HL,SIGNON       ; Sign-on message
         CALL    PRS             ; Output string
@@ -241,14 +246,18 @@ WARMST: LD      SP,STACK        ; Temporary stack
 BRKRET: CALL    CLREG           ; Clear registers and stack
         JP      PRNTOK          ; Go to get command line
 
-BFREE:  .BYTE   " Bytes free",CR,LF,0,0
+BFREE:  .BYTE   " Bytes free"                                       ; Dec/2023 - Adapted by David Asta
+        .BYTE   $1B, "[0m"                                          ; Dec/2023 - Added by David Asta
+        .BYTE   CR,LF,0,0                                           ; Dec/2023 - Adapted by David Asta
 
-SIGNON: .BYTE   "Z80 BASIC Ver 4.7b",CR,LF
-        .BYTE   "Copyright ",40,"C",41
-        .BYTE   " 1978 by Microsoft",CR,LF
-        .BYTE   "Adapted to dastaZ80 by David Asta ",40,"C",41," 2022-2023",CR,LF,0,0    ; Dec/2022 - Added by David
+SIGNON: .BYTE   $1B, "[34m"                                                             ; Dec/2023 - Added by David Asta
+        .BYTE   "Z80 BASIC Ver 4.7b Copyright ",40,"C",41," 1978 by Microsoft",CR,LF    ; Dec/2023 - Adapted by David Asta
+        .BYTE   $1B, "[36m"                                                             ; Dec/2023 - Added by David Asta
+        .BYTE   "Z80 BASIC Ver 4.7b(dz1.0.0) 2022-2023 Adaptations by David Asta"       ; Dec/2023 - Added by David Asta
+        .BYTE   $1B, "[35m"                                                             ; Dec/2023 - Added by David Asta
+        .BYTE   CR,LF,0,0                                                               ; Dec/2023 - Added by David Asta
 
-MEMMSG: .BYTE   "Memory top",0
+; MEMMSG: .BYTE   "Memory top",0  ; Nov/2023 - Adapted by David Asta - Removed
 
 ; FUNCTION ADDRESS TABLE
 
@@ -269,6 +278,7 @@ FNCTAB: .WORD   SGN
         .WORD   ATN
         .WORD   PEEK
         .WORD   DEEK
+        .WORD   VPEEK                   ; Jul/2023 - Added by David Asta
         .WORD   POINT
         .WORD   LEN
         .WORD   STR
@@ -306,6 +316,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'D'+80H,"EF"
         .BYTE   'P'+80H,"OKE"
         .BYTE   'D'+80H,"OKE"
+        .BYTE   'V'+80H,"POKE"          ; Jul/2023 - Added by David Asta
         .BYTE   'S'+80H,"CREEN"
         .BYTE   'L'+80H,"INES"
         .BYTE   'C'+80H,"LS"
@@ -359,6 +370,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'A'+80H,"TN"
         .BYTE   'P'+80H,"EEK"
         .BYTE   'D'+80H,"EEK"
+        .BYTE   'V'+80H,"PEEK"           ; Jul/2023 - Added by David Asta
         .BYTE   'P'+80H,"OINT"
         .BYTE   'L'+80H,"EN"
         .BYTE   'S'+80H,"TR$"
@@ -397,6 +409,7 @@ WORDTB: .WORD   PEND
         .WORD   DEF
         .WORD   POKE
         .WORD   DOKE
+        .WORD   VPOKE                   ; Jul/2023 - Added by David Asta
         .WORD   SCREEN
         .WORD   LINES
         .WORD   CLS
@@ -422,28 +435,28 @@ ZDATA   .EQU    083H            ; DATA
 ZGOTO   .EQU    088H            ; GOTO
 ZGOSUB  .EQU    08CH            ; GOSUB
 ZREM    .EQU    08EH            ; REM
-ZPRINT  .EQU    09EH            ; PRINT
-ZNEW    .EQU    0A6H            ; NEW
+ZPRINT  .EQU    09FH            ; PRINT
+ZNEW    .EQU    0A7H            ; NEW
 
-ZTAB    .EQU    0A7H            ; TAB
-ZTO     .EQU    0A8H            ; TO
-ZFN     .EQU    0A9H            ; FN
-ZSPC    .EQU    0AAH            ; SPC
-ZTHEN   .EQU    0ABH            ; THEN
-ZNOT    .EQU    0ACH            ; NOT
-ZSTEP   .EQU    0ADH            ; STEP
+ZTAB    .EQU    0A8H            ; TAB
+ZTO     .EQU    0A9H            ; TO
+ZFN     .EQU    0AAH            ; FN
+ZSPC    .EQU    0ABH            ; SPC
+ZTHEN   .EQU    0ACH            ; THEN
+ZNOT    .EQU    0ADH            ; NOT
+ZSTEP   .EQU    0AEH            ; STEP
 
-ZPLUS   .EQU    0AEH            ; +
-ZMINUS  .EQU    0AFH            ; -
-ZTIMES  .EQU    0B0H            ; *
-ZDIV    .EQU    0B1H            ; /
-ZOR     .EQU    0B4H            ; OR
-ZGTR    .EQU    0B5H            ; >
-ZEQUAL  .EQU    0B6H            ; M
-ZLTH    .EQU    0B7H            ; <
-ZSGN    .EQU    0B8H            ; SGN
-ZPOINT  .EQU    0C9H            ; POINT
-ZLEFT   .EQU    0D1H            ; LEFT$
+ZPLUS   .EQU    0AFH            ; +
+ZMINUS  .EQU    0B0H            ; -
+ZTIMES  .EQU    0B1H            ; *
+ZDIV    .EQU    0B2H            ; /
+ZOR     .EQU    0B5H            ; OR
+ZGTR    .EQU    0B6H            ; >
+ZEQUAL  .EQU    0B7H            ; M
+ZLTH    .EQU    0B8H            ; <
+ZSGN    .EQU    0B9H            ; SGN
+ZPOINT  .EQU    0CBH            ; POINT
+ZLEFT   .EQU    0D1H +2         ; LEFT$
 
 ; ARITHMETIC PRECEDENCE TABLE
 
@@ -4475,36 +4488,47 @@ SCREEN:   ; Jan/2023 - Added by David Asta
 ;                       3=Multicolour Mode
 ;                       4=Graphics II Mode Bitmapped
         call    GETINT                  ; get screen mode number
-        cp      0
-        jr      z, _set_mode0
-        cp      1
-        jr      z, _set_mode1
-        cp      2
-        jr      z, _set_mode2
-        cp      3
-        jr      z, _set_mode3
-        cp      4
-        jr      z, _set_mode4
+        cp      $05                     ; is it a valid mode (0-4)?
+        jp      c, _valid_mode          ; yes, change mode via Kernel
+        ld      E, UM                   ; no,
+        jp      ERROR                   ;   show error UM
+_valid_mode:
+        push    HL                      ; backup HL
+        call    F_KRN_VDP_SET_MODE      ; set to mode stored in A
+        pop     HL                      ; restore HL
+        ret
 
-        ; none of the above, mode unknown
-        ld      E, UM                   ; Unknown VDP screen mode
-        jp      ERROR
+VPOKE:   ; Jul/2023 - Added by David Asta
+; Writes a value at a specific VRAM address
+; VPOKE <address>,<value>
+        call    GETNUM                  ; get VRAM address
+        call    DEINT                   ; Get integer -32768 to 32767
+        ld      (tmp_addr1), DE         ; backup VRAM address
+        call    CHKSYN                  ; check that comma follows VRAM address
+        .BYTE   ','
+        call    GETINT                  ; get Value (integer 0 to 255)
+        push    HL                      ; backup HL
+        push    AF                      ; backup value
 
-_set_mode0:
-        call    F_BIOS_VDP_SET_MODE_TXT
+        call    F_BIOS_VDP_DI
+        pop     AF                      ; restore value
+        ld      HL, (tmp_addr1)         ; restore VRAM address
+        call    F_BIOS_VDP_SET_ADDR_WR  ; point to VRAM cell HL
+        call    F_BIOS_VDP_BYTE_TO_VRAM ; write A to pointed VRAM cell
+        call    F_BIOS_VDP_EI
+        pop     HL                      ; restore HL
         ret
-_set_mode1:
-        call    F_BIOS_VDP_SET_MODE_G1
-        ret
-_set_mode2:
-        call    F_BIOS_VDP_SET_MODE_G2
-        ret
-_set_mode3:
-        call    F_BIOS_VDP_SET_MODE_MULTICLR
-        ret
-_set_mode4:
-        call    F_BIOS_VDP_SET_MODE_G2BM
-        ret
+
+VPEEK:   ; Jul/2023 - Added by David Asta
+; Gets the value at a specific VRAM address
+; VPEEK <address>
+        call    DEINT                   ; Get memory address
+        push    HL                      ; backup HL
+        ex      DE, HL                  ; move memory address into HL
+        call    F_BIOS_VDP_SET_ADDR_RD  ; point to VRAM cell HL
+        call    F_BIOS_VDP_VRAM_TO_BYTE ; Get byte in memory
+        pop     HL                      ; restore HL
+        jp      PASSA                   ; Return integer A
 
 CAT:    ; Nov/2023 - Added by David Asta
 ; List BASIC files in the current disk
@@ -4587,6 +4611,7 @@ COLOUR:     ; Dec/2023 - Added by David Asta
         CALL    GETINT                  ; Get integer 0-255, for background
         cp      16                      ; is it a valid colour number (0-15)?
         jp      nc, SNERR               ; no, syntax error
+        push    HL                      ; backup HL
         ld      (tmp_byte2), A          ; backup background colour in DZOS SYSVARS
 
         ; Prepare ANSI code for foreground colour
@@ -4662,19 +4687,8 @@ _bgrnd_3digits:
 _change_colours:
         ld      DE, ANSI_FNT_TEMP
         call    F_KRN_SERIAL_SEND_ANSI_CODE
+        pop     HL                      ; restore HL
         ret
-
-RESET_ANSI_COLOURS:  ; Nov/2023 - Added by David Asta
-; Messages printed by the Kernel (e.g. after load/save) change the text colour.
-; This subroutine resets the text colour to default (white over black) by using
-; ANSI escape code ESC[0m
-        ld      DE, ANSI_FNT_NORMAL
-        ld      B, 4
-        call    F_KRN_SERIAL_SEND_ANSI_CODE
-        ret
-ANSI_FNT_NORMAL:    .BYTE   $1B, "[0m"
-ANSI_FNT_MESSAGE:   .BYTE   $1B, "[33m"
-ANSI_FNT_TEMP:      .BYTE   $1B, "[nn;nnnm"     ; This is used by COLOUR
 
 SPOKE:  ; Dec/2023 - Added by David Asta
 ; Writes a value in a specific PSG register.
@@ -4691,5 +4705,17 @@ SPOKE:  ; Dec/2023 - Added by David Asta
         pop     AF                      ; restore PSGregister
         call    F_BIOS_PSG_SET_REGISTER
         ret
+
+RESET_ANSI_COLOURS:  ; Nov/2023 - Added by David Asta
+; Messages printed by the Kernel (e.g. after load/save) change the text colour.
+; This subroutine resets the text colour to default (white over black) by using
+; ANSI escape code ESC[0m
+        ld      DE, ANSI_FNT_NORMAL
+        ld      B, 4
+        call    F_KRN_SERIAL_SEND_ANSI_CODE
+        ret
+ANSI_FNT_NORMAL: .BYTE   $1B, "[0m"
+ANSI_FNT_MESSAGE: .BYTE   $1B, "[33m"
+ANSI_FNT_TEMP:      .BYTE   $1B, "[nn;nnnm"     ; This is used by COLOUR
 
 .end
