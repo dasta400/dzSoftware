@@ -36,6 +36,7 @@ This is a repository of programs I develop (or adapt in the case of MS BASIC) fo
   * **vdptext** - A test showing text on the VDP screen.
   * **vramdump** - Shows, in hexadecimal, all the contents (bytes) of video memory (VRAM) locations between two addresses. After _run vramdump_, the user will be asked to enter the start and end addresses. Entering a blank address will terminate the program.
   * **pastefile** - It allows to transfer files into the dastaZ80 memory, by copying bytes typed with the keyboard, and storing them in a specified RAM address. It's very handy for testing new software under development without having to extract the MicroSD card. It's loaded into a higher RAM address (0xC420) to not use the memory space that will be used by the programs pasted. Usually programs load at $4420.
+  * **sysvarsview** - Shows the current values stored in SYSVARS.
 * **C** - Programs made with [Small Device C Compiler (SDCC)](http://sdcc.sourceforge.net/)
   * **crt0.s** - Sets the vector address to the start of dastaZ80 free RAM (0x4420), and makes the exit() to jump back to dastaZ80 CLI.
   * **putchar.s** - Used by _printf_, calls F_BIOS_SERIAL_CONOUT_A.
