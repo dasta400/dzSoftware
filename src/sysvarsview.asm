@@ -33,7 +33,108 @@
                                         ; And set the start of code at address $4420
 .LIST
 
+        ld      HL, msg_welcome
+        call    F_KRN_SERIAL_WRSTR
+main_loop:
+        ld      HL, msg_menu
+        call    F_KRN_SERIAL_WRSTR
+
+        call    F_BIOS_SERIAL_CONIN_A
+        cp      CR
+        jp      z, exitpgm
+        cp      $31
+        call    z, show_SIO
+        cp      $32
+        call    z, show_sblock
+        cp      $33
+        call    z, show_bat
+        cp      $34
+        call    z, show_cli
+        cp      $35
+        call    z, show_rtc
+        cp      $36
+        call    z, show_math
+        cp      $37
+        call    z, show_generic
+        cp      $38
+        call    z, show_vdp
+        cp      $39
+        call    z, show_colscheme
+        cp      $30
+        call    z, show_all
+        jr      main_loop
+; ALL -------------------------------------------------------------------------
+show_all:
+        call    show_SIO
+        call    show_sblock
+        call    show_bat
+        call    show_cli
+        call    show_rtc
+        call    show_math
+        call    show_generic
+        call    show_vdp
+        call    show_colscheme
+        ld      A, $30                  ; restore pressed key value
+        ret
+; SIO -------------------------------------------------------------------------
+show_SIO:
+        ld      HL, title_SIO
+        ld      A, ANSI_COLR_CYA
+        call    print_title
+
+        ; Channel A
+        ld      HL, sysvar_4020
+        call    print_header
+        ld      B, 64
+        ld      IX, SIO_CH_A_BUFFER
+        call    print_nvalue
+
+        ld      HL, sysvar_4060
+        call    print_header
+        ld      DE, (SIO_CH_A_IN_PTR)
+        call    print_wordvalue
+
+        ld      HL, sysvar_4062
+        call    print_header
+        ld      DE, (SIO_CH_A_RD_PTR)
+        call    print_wordvalue
+
+        ld      HL, sysvar_4064
+        call    print_header
+        ld      HL, SIO_CH_A_BUFFER_USED
+        call    print_bytevalue
+
+        ld      HL, sysvar_4065
+        call    print_header
+        ld      HL, SIO_CH_A_LASTCHAR
+        call    print_bytevalue
+
+        ; Channel B
+        ld      HL, sysvar_4066
+        call    print_header
+        ld      B, 64
+        ld      IX, SIO_CH_B_BUFFER
+        call    print_nvalue
+
+        ld      HL, sysvar_40A6
+        call    print_header
+        ld      DE, (SIO_CH_B_IN_PTR)
+        call    print_wordvalue
+
+        ld      HL, sysvar_40A8
+        call    print_header
+        ld      DE, (SIO_CH_B_RD_PTR)
+        call    print_wordvalue
+
+        ld      HL, sysvar_40AA
+        call    print_header
+        ld      HL, SIO_CH_B_BUFFER_USED
+        call    print_bytevalue
+
+        ld      A, $31                  ; restore pressed key value
+        ret
 ; Superblock ------------------------------------------------------------------
+show_sblock:
         ld      HL, title_sblock
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -52,67 +153,75 @@
         call    print_header
         ld      DE, (DISK_cur_sector)
         call    print_wordvalue
+
+        ld      A, $32                  ; restore pressed key value
+        ret
 ; DISK BAT --------------------------------------------------------------------
-        ; ld      HL, title_BAT
-        ; ld      A, ANSI_COLR_CYA
-        ; call    print_title
+show_bat:
+        ld      HL, title_BAT
+        ld      A, ANSI_COLR_CYA
+        call    print_title
 
-        ; ld      HL, sysvar_40AF
-        ; call    print_header
-        ; ld      B, 14
-        ; ld      IX, DISK_cur_file_name
-        ; call    print_nvalue
+        ld      HL, sysvar_40AF
+        call    print_header
+        ld      B, 14
+        ld      IX, DISK_cur_file_name
+        call    print_nvalue
 
-        ; ld      HL, sysvar_40BD
-        ; call    print_header
-        ; ld      HL, DISK_cur_file_attribs
-        ; call    print_bytevalue
+        ld      HL, sysvar_40BD
+        call    print_header
+        ld      HL, DISK_cur_file_attribs
+        call    print_bytevalue
 
-        ; ld      HL, sysvar_40BE
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_time_created)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40BE
+        call    print_header
+        ld      DE, (DISK_cur_file_time_created)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40C0
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_date_created)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40C0
+        call    print_header
+        ld      DE, (DISK_cur_file_date_created)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40C2
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_time_modified)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40C2
+        call    print_header
+        ld      DE, (DISK_cur_file_time_modified)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40C4
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_date_modified)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40C4
+        call    print_header
+        ld      DE, (DISK_cur_file_date_modified)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40C6
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_size_bytes)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40C6
+        call    print_header
+        ld      DE, (DISK_cur_file_size_bytes)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40C8
-        ; call    print_header
-        ; ld      HL, DISK_cur_file_size_sectors
-        ; call    print_bytevalue
+        ld      HL, sysvar_40C8
+        call    print_header
+        ld      HL, DISK_cur_file_size_sectors
+        call    print_bytevalue
 
-        ; ld      HL, sysvar_40C9
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_entry_number)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40C9
+        call    print_header
+        ld      DE, (DISK_cur_file_entry_number)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40CB
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_1st_sector)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40CB
+        call    print_header
+        ld      DE, (DISK_cur_file_1st_sector)
+        call    print_wordvalue
 
-        ; ld      HL, sysvar_40CD
-        ; call    print_header
-        ; ld      DE, (DISK_cur_file_load_addr)
-        ; call    print_wordvalue
+        ld      HL, sysvar_40CD
+        call    print_header
+        ld      DE, (DISK_cur_file_load_addr)
+        call    print_wordvalue
+
+        ld      A, $33                  ; restore pressed key value
+        ret
 ; CLI -------------------------------------------------------------------------
+show_cli:
         ld      HL, title_CLI
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -157,7 +266,11 @@
         ld      B, 64
         ld      IX, CLI_buffer_full_cmd
         call    print_nvalue
+
+        ld      A, $34                  ; restore pressed key value
+        ret
 ; RTC -------------------------------------------------------------------------
+show_rtc:
         ld      HL, title_RTC
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -207,12 +320,28 @@
         ld      HL, RTC_day_of_the_week
         call    print_bytevalue
 
+        ld      A, $35                  ; restore pressed key value
+        ret
 ; Math ------------------------------------------------------------------------
-        ; ld      HL, title_math
-        ; ld      A, ANSI_COLR_CYA
-        ; call    print_title
+show_math:
+        ld      HL, title_math
+        ld      A, ANSI_COLR_CYA
+        call    print_title
 
+        ld      HL, sysvar_4171
+        call    print_header
+        ld      DE, (MATH_CRC)
+        call    print_wordvalue
+
+        ld      HL, sysvar_4173
+        call    print_header
+        ld      DE, (MATH_polynomial)
+        call    print_wordvalue
+
+        ld      A, $36                  ; restore pressed key value
+        ret
 ; Generic ---------------------------------------------------------------------
+show_generic:
         ld      HL, title_generic
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -271,7 +400,11 @@
         call    print_header
         ld      HL, tmp_byte2
         call    print_bytevalue
+
+        ld      A, $37                  ; restore pressed key value
+        ret
 ; VDP -------------------------------------------------------------------------
+show_vdp:
         ld      HL, title_VDP
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -340,7 +473,11 @@
         call    print_header
         ld      HL, VDP_jiffy_byte3
         call    print_bytevalue
+
+        ld      A, $38                  ; restore pressed key value
+        ret
 ; System Colour Scheme --------------------------------------------------------
+show_colscheme:
         ld      HL, title_colsch
         ld      A, ANSI_COLR_CYA
         call    print_title
@@ -420,7 +557,8 @@
         ld      HL, col_CLI_warning
         call    print_bytevalue
 
-        jp      exitpgm
+        ld      A, $39                  ; restore pressed key value
+        ret
 ; -----------------------------------------------------------------------------
 print_header:
 ; Prints the name of the SYSVAR variable in magenta colour,
@@ -494,34 +632,50 @@ _print_bytes:
 ; RETURN TO DZOS CLI
 ;==============================================================================
 exitpgm:
-        ; Print CR+LF and exit to CLI
-        ld      A, CR
-        call    F_BIOS_SERIAL_CONOUT_A
-        ld      A, LF
-        call    F_BIOS_SERIAL_CONOUT_A
+        ld      HL, msg_goodbye
+        call    F_KRN_SERIAL_WRSTR
         ld      HL, (CLI_prompt_addr)
         jp      (HL)                    ; return control to CLI
 ;==============================================================================
 ; Messages
 ;==============================================================================
-title_SIO:     .BYTE   CR, LF, "SIO", 0
-title_sblock:  .BYTE   CR, LF, "DISK Superblock", 0
-title_BAT:     .BYTE   CR, LF, "DISK BAT", 0
-title_CLI:     .BYTE   CR, LF, "CLI", 0
-title_RTC:     .BYTE   CR, LF, "RTC", 0
-title_math:    .BYTE   CR, LF, "Math", 0
-title_generic: .BYTE   CR, LF, "Generic", 0
-title_VDP:     .BYTE   CR, LF, "VDP", 0
-title_colsch:  .BYTE   CR, LF, "System Colour Scheme", 0
-; sysvar_4020:    .BYTE   CR, LF, "    SIO_CH_A_BUFFER: ", 0
-; sysvar_4060:    .BYTE   CR, LF, "    SIO_CH_A_IN_PTR: ", 0
-; sysvar_4062:    .BYTE   CR, LF, "    SIO_CH_A_RD_PTR: ", 0
-; sysvar_4064:    .BYTE   CR, LF, "    SIO_CH_A_BUFFER_USED: ", 0
-; sysvar_4065:    .BYTE   CR, LF, "    SIO_CH_A_LASTCHAR: ", 0
-; sysvar_4066:    .BYTE   CR, LF, "    SIO_CH_B_BUFFER: ", 0
-; sysvar_40A6:    .BYTE   CR, LF, "    SIO_CH_B_IN_PTR: ", 0
-; sysvar_40A8:    .BYTE   CR, LF, "    SIO_CH_B_RD_PTR: ", 0
-; sysvar_40AA:    .BYTE   CR, LF, "    SIO_CH_B_BUFFER_USED: ", 0
+msg_welcome:
+        .BYTE   CR, LF
+        .BYTE   "sysvarsview - Shows SYSVARS current values", CR, LF, 0
+msg_goodbye:
+        .BYTE   CR, LF
+        .BYTE   "Goodbye!", 0
+msg_menu:
+        .BYTE   CR, LF, "1) SIO"
+        .BYTE   CR, LF, "2) DISK Superblock"
+        .BYTE   CR, LF, "3) DISK BAT"
+        .BYTE   CR, LF, "4) CLI"
+        .BYTE   CR, LF, "5) RTC"
+        .BYTE   CR, LF, "6) Math"
+        .BYTE   CR, LF, "7) Generic"
+        .BYTE   CR, LF, "8) VDP"
+        .BYTE   CR, LF, "9) System Colour Scheme"
+        .BYTE   CR, LF, "Select which to display (0=All,blank=Exit)", 0
+
+title_SIO:      .BYTE   CR, LF, "SIO", 0
+title_sblock:   .BYTE   CR, LF, "DISK Superblock", 0
+title_BAT:      .BYTE   CR, LF, "DISK BAT", 0
+title_CLI:      .BYTE   CR, LF, "CLI", 0
+title_RTC:      .BYTE   CR, LF, "RTC", 0
+title_math:     .BYTE   CR, LF, "Math", 0
+title_generic:  .BYTE   CR, LF, "Generic", 0
+title_VDP:      .BYTE   CR, LF, "VDP", 0
+title_colsch:   .BYTE   CR, LF, "System Colour Scheme", 0
+
+sysvar_4020:    .BYTE   CR, LF, "    SIO_CH_A_BUFFER: ", 0
+sysvar_4060:    .BYTE   CR, LF, "    SIO_CH_A_IN_PTR: ", 0
+sysvar_4062:    .BYTE   CR, LF, "    SIO_CH_A_RD_PTR: ", 0
+sysvar_4064:    .BYTE   CR, LF, "    SIO_CH_A_BUFFER_USED: ", 0
+sysvar_4065:    .BYTE   CR, LF, "    SIO_CH_A_LASTCHAR: ", 0
+sysvar_4066:    .BYTE   CR, LF, "    SIO_CH_B_BUFFER: ", 0
+sysvar_40A6:    .BYTE   CR, LF, "    SIO_CH_B_IN_PTR: ", 0
+sysvar_40A8:    .BYTE   CR, LF, "    SIO_CH_B_RD_PTR: ", 0
+sysvar_40AA:    .BYTE   CR, LF, "    SIO_CH_B_BUFFER_USED: ", 0
 sysvar_40AB:    .BYTE   CR, LF, "    DISK_is_formatted: ", 0
 sysvar_40AC:    .BYTE   CR, LF, "    DISK_show_deleted: ", 0
 sysvar_40AD:    .BYTE   CR, LF, "    DISK_cur_sector: ", 0
